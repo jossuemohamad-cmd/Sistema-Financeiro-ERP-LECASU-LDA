@@ -1,0 +1,23 @@
+name: Deploy Automático cPanel
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Acionar Deploy Automático no cPanel
+        run: |
+          echo "Disparando webhook de implementação em erp.lecasu.co.mz..."
+          HTTP_STATUS=$(curl -s -o deploy_response.json -w "%{http_code}" -X POST "https://erp.lecasu.co.mz/deploy.php?token=LecasuDeploy2026")
+          echo "Status HTTP retornado: $HTTP_STATUS"
+          cat deploy_response.json || true
+          if [ "$HTTP_STATUS" -eq 200 ]; then
+            echo "Implementação no cPanel concluída com sucesso!"
+          else
+            echo "Aviso: Webhook retornou status $HTTP_STATUS. Verifique se o deploy.php já está presente no servidor."
+          fi
