@@ -344,11 +344,7 @@ try {
             'ativos' => [],
             'book' => [],
             'ex' => [],
-            'bank' => [
-                ['id' => 'b1', 'nome' => 'Millennium BIM - Conta Principal', 'num' => '0001.2345.6789.01', 'saldo' => 0, 'moeda' => 'MZN'],
-                ['id' => 'b2', 'nome' => 'Standard Bank - Conta Operações', 'num' => '0002.9876.5432.10', 'saldo' => 0, 'moeda' => 'MZN'],
-                ['id' => 'b3', 'nome' => 'BCI - Caixa e Tesouraria', 'num' => '0003.5555.4444.22', 'saldo' => 0, 'moeda' => 'MZN']
-            ],
+            'bank' => [],
             'pc' => $pcTemplate,
             'config' => [
                 'empresa' => 'LECASU, LDA.',

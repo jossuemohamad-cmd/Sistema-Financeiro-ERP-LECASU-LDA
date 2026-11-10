@@ -427,17 +427,6 @@ function recTab(R) {
       ${kpi("Saldo líquido", m(R.liq))}
     </div>
 
-    <!-- Contas Bancárias Oficiais LECASU -->
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin:14px 0">
-      ${(S.bank || []).map(b => `
-        <div class="cd" style="padding:12px 14px;border-left:4px solid var(--ac)">
-          <div style="font-size:11px;font-weight:700;color:var(--mu);text-transform:uppercase">${esc(b.nome)}</div>
-          <div style="font-size:18px;font-weight:700;margin:4px 0;color:var(--tx)">${m(b.saldo || 0)}</div>
-          <div style="font-size:11.5px;color:var(--mu)">Conta: <code>${esc(b.num || "—")}</code> · ${esc(b.moeda || "MZN")}</div>
-        </div>
-      `).join("")}
-    </div>
-
     ${sc(head(MH, ["Entrada (MZN)", "Saída (MZN)", "Saldo (MZN)"]) + filteredBook.map(x => mrow(x, 1)).join("") + `<tr class="t"><td></td><td>Total do mês</td><td></td><td class="n">${m(R.tin)}</td><td class="n">${m(R.tout)}</td><td class="n">${m(R.contab)}</td><td colspan="9"></td><td class="col-actions ac"></td></tr>`)}
     <h2>Movimentos no extracto ainda não registados na contabilidade (a lançar no ERP)</h2>
     ${sc(head(MH, ["Entrada (MZN)", "Saída (MZN)", "Saldo (MZN)"]) + (filteredEx.map(x => mrow(x, 0)).join("") || '<tr><td colspan="16"><small>Sem movimentos.</small></td></tr>'))}
@@ -1223,10 +1212,12 @@ function renderRelatoriosView() {
   let contentHtml = "";
 
   if (repTabActive === "balancete") {
+    const totInventario = r2((S.materia || []).reduce((a, x) => a + ((Number(x.qtd) || 0) * (Number(x.prc || x.preco) || 0)), 0));
+    const totAtivos = r2((S.ativos || []).reduce((a, x) => a + (Number(x.val) || 0), 0));
     const classes = [
       { cod: "1", des: "Meios Monetários", deb: R.tin + S.ini, cred: R.tout, salD: R.adj, salC: 0 },
-      { cod: "2", des: "Inventários e Produtos", deb: 85000, cred: 0, salD: 85000, salC: 0 },
-      { cod: "3", des: "Investimentos de Capital", deb: 1935000, cred: 0, salD: 1935000, salC: 0 },
+      { cod: "2", des: "Inventários e Produtos", deb: totInventario, cred: 0, salD: totInventario, salC: 0 },
+      { cod: "3", des: "Investimentos de Capital", deb: totAtivos, cred: 0, salD: totAtivos, salC: 0 },
       { cod: "4", des: "Contas de Terceiros", deb: R.pr, cred: R.pa, salD: R.pr, salC: R.pa },
       { cod: "6", des: "Gastos e Perdas", deb: R.tout, cred: 0, salD: R.tout, salC: 0 },
       { cod: "7", des: "Rendimentos e Ganhos", deb: 0, cred: R.tin, salD: 0, salC: R.tin }
@@ -2128,10 +2119,146 @@ function importBackup(file) {
 
 // Importação de Planilha Excel (.xlsx, .xls, .csv)
 let pendingExcelData = null;
+let excelDetectedSaldoInicial = null;
+
+function normalizeRawNumber(val) {
+  if (typeof val === "number") return isNaN(val) ? 0 : val;
+  if (!val) return 0;
+  let str = String(val).trim();
+  let isNegative = str.startsWith("-") || (str.startsWith("(") && str.endsWith(")"));
+  let clean = str.replace(/[()MZNMTnEURUSDZAR$\s]/gi, "").trim();
+  if (!clean) return 0;
+  if (clean.includes(",") && clean.includes(".")) {
+    if (clean.indexOf(".") < clean.indexOf(",")) {
+      clean = clean.replace(/\./g, "").replace(",", ".");
+    } else {
+      clean = clean.replace(/,/g, "");
+    }
+  } else if (clean.includes(",")) {
+    clean = clean.replace(",", ".");
+  }
+  const n = parseFloat(clean);
+  if (isNaN(n)) return 0;
+  return isNegative ? -Math.abs(n) : n;
+}
+
+function processRawGrid(grid) {
+  if (!Array.isArray(grid) || !grid.length) return { rows: [], saldoInicial: null };
+
+  const knownHeaderKeywords = [
+    "data", "date", "descri", "histórico", "historico", "detalhe", "transacao", "transação",
+    "entrada", "entradas", "in", "credito", "crédito", "recebimento", "deposito", "depósito",
+    "saida", "saída", "saídas", "out", "debito", "débito", "pagamento", "despesa", "gasto",
+    "saldo", "balance", "documento", "doc", "factura", "fatura", "recibo", "referencia", "referência", "ref",
+    "cliente", "fornecedor", "terceiro", "entidade", "nuit", "categoria", "cat", "rubrica", "conta",
+    "artigo", "produto", "material", "stock", "quantidade", "qtd", "preco", "preço", "custo",
+    "colaborador", "funcionario", "funcionário", "cargo", "salario", "salário", "inss", "ativo", "activo", "inventario", "inventário"
+  ];
+
+  let bestHeaderIdx = -1;
+  let bestScore = 0;
+  let detectedSaldoIni = null;
+
+  // 1. Procurar nas primeiras 20 linhas qual delas é o cabeçalho real
+  const maxScan = Math.min(grid.length, 20);
+  for (let i = 0; i < maxScan; i++) {
+    const row = grid[i];
+    if (!Array.isArray(row)) continue;
+
+    // Verificar se a linha contém indicação de saldo inicial (ex: "Saldo Inicial", "Saldo 01/09/2026")
+    const rowText = row.map(c => String(c ?? "").trim()).join(" ").toLowerCase();
+    if (rowText.includes("saldo inicial") || rowText.includes("saldo anterior") || /saldo\s+\d{1,2}[\/\.]\d{1,2}/.test(rowText)) {
+      for (const cell of row) {
+        const cellStr = String(cell ?? "").trim();
+        if (/^\d{1,2}[\/\.-]\d{1,2}[\/\.-]\d{2,4}$/.test(cellStr) || /^\d{4}-\d{2}-\d{2}$/.test(cellStr)) continue;
+        const num = normalizeRawNumber(cell);
+        if (num > 0 && detectedSaldoIni === null) {
+          detectedSaldoIni = num;
+        }
+      }
+    }
+
+    let score = 0;
+    for (const cell of row) {
+      const cStr = String(cell ?? "").trim().toLowerCase();
+      if (!cStr) continue;
+      if (knownHeaderKeywords.some(kw => cStr === kw || cStr.startsWith(kw + " ") || cStr.endsWith(" " + kw) || cStr.includes(kw))) {
+        score++;
+      }
+    }
+
+    if (score > bestScore) {
+      bestScore = score;
+      bestHeaderIdx = i;
+    }
+  }
+
+  // Se nenhuma linha pontuou bem (>= 2), procura a primeira linha não vazia
+  if (bestScore < 2) {
+    bestHeaderIdx = grid.findIndex(r => Array.isArray(r) && r.some(c => String(c ?? "").trim().length > 0));
+    if (bestHeaderIdx === -1) bestHeaderIdx = 0;
+  }
+
+  // 2. Extrair os cabeçalhos limpos
+  const rawHeaders = grid[bestHeaderIdx] || [];
+  const cleanHeaders = [];
+  const usedHeaders = {};
+
+  rawHeaders.forEach((h, colIdx) => {
+    let name = String(h ?? "").trim();
+    if (!name || name.startsWith("=")) {
+      name = `Coluna_${colIdx + 1}`;
+    }
+    // Evitar colisões de nomes duplicados
+    let finalName = name;
+    let counter = 1;
+    while (usedHeaders[finalName.toLowerCase()]) {
+      counter++;
+      finalName = `${name}_${counter}`;
+    }
+    usedHeaders[finalName.toLowerCase()] = true;
+    cleanHeaders.push(finalName);
+  });
+
+  // 3. Montar os registos a partir das linhas seguintes
+  const records = [];
+  for (let i = bestHeaderIdx + 1; i < grid.length; i++) {
+    const row = grid[i];
+    if (!Array.isArray(row)) continue;
+    // Ignorar linhas 100% vazias
+    if (row.every(c => String(c ?? "").trim() === "")) continue;
+
+    const obj = {};
+    let hasAnyData = false;
+    cleanHeaders.forEach((h, idx) => {
+      const val = row[idx] !== undefined && row[idx] !== null ? row[idx] : "";
+      obj[h] = val;
+      if (String(val).trim() !== "") hasAnyData = true;
+    });
+
+    if (hasAnyData) {
+      // Se for linha de "Saldo Inicial", extrair valor se ainda não tivermos
+      const objText = Object.values(obj).map(v => String(v).toLowerCase()).join(" ");
+      if (objText.includes("saldo inicial") || objText.includes("saldo anterior") || /saldo\s+\d{1,2}[\/\.]\d{1,2}/.test(objText)) {
+        for (const v of Object.values(obj)) {
+          const vStr = String(v ?? "").trim();
+          if (/^\d{1,2}[\/\.-]\d{1,2}[\/\.-]\d{2,4}$/.test(vStr) || /^\d{4}-\d{2}-\d{2}$/.test(vStr)) continue;
+          const num = normalizeRawNumber(v);
+          if (num > 0 && detectedSaldoIni === null) {
+            detectedSaldoIni = num;
+          }
+        }
+      }
+      records.push(obj);
+    }
+  }
+
+  return { rows: records, saldoInicial: detectedSaldoIni };
+}
 
 function parseCSV(text) {
   const lines = text.trim().split(/\r?\n/).filter(l => l.trim().length > 0);
-  if (lines.length < 2) return [];
+  if (!lines.length) return [];
   const sep = (lines[0].match(/;/g) || []).length > (lines[0].match(/,/g) || []).length ? ";" : ",";
   const parseLine = line => {
     const regex = new RegExp(`(?:^|${sep})(\"(?:[^\"]|\"\")*\"|[^${sep}]*)`, "g");
@@ -2146,17 +2273,7 @@ function parseCSV(text) {
     }
     return fields;
   };
-  const headers = parseLine(lines[0]);
-  const rows = [];
-  for (let i = 1; i < lines.length; i++) {
-    const cols = parseLine(lines[i]);
-    const obj = {};
-    headers.forEach((h, idx) => {
-      if (h) obj[h] = cols[idx] !== undefined ? cols[idx] : "";
-    });
-    rows.push(obj);
-  }
-  return rows;
+  return lines.map(parseLine);
 }
 
 function handleExcelFile(file) {
@@ -2167,9 +2284,11 @@ function handleExcelFile(file) {
     const reader = new FileReader();
     reader.onload = e => {
       const text = e.target.result;
-      const rows = parseCSV(text);
-      if (!rows.length) return toast("Planilha CSV vazia ou formato não reconhecido.");
-      showExcelImportDialog(file.name, rows);
+      const rawGrid = parseCSV(text);
+      if (!rawGrid.length) return toast("Planilha CSV vazia ou formato não reconhecido.");
+      const { rows, saldoInicial } = processRawGrid(rawGrid);
+      if (!rows.length) return toast("Nenhum dado encontrado na planilha CSV.");
+      showExcelImportDialog(file.name, rows, saldoInicial);
     };
     reader.readAsText(file, "UTF-8");
   } else {
@@ -2183,11 +2302,15 @@ function handleExcelFile(file) {
         const workbook = XLSX.read(data, { type: "array", cellDates: true });
         const firstSheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[firstSheetName];
-        const json = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
-        if (!json || !json.length) {
+        const rawGrid = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "", raw: false });
+        if (!rawGrid || !rawGrid.length) {
           return toast("A folha do Excel está vazia.");
         }
-        showExcelImportDialog(file.name, json);
+        const { rows, saldoInicial } = processRawGrid(rawGrid);
+        if (!rows.length) {
+          return toast("Não foi possível identificar colunas com dados na folha do Excel.");
+        }
+        showExcelImportDialog(file.name, rows, saldoInicial);
       } catch (err) {
         console.error(err);
         toast("Erro ao ler o ficheiro Excel.");
@@ -2197,12 +2320,17 @@ function handleExcelFile(file) {
   }
 }
 
-function showExcelImportDialog(fileName, rows) {
+function showExcelImportDialog(fileName, rows, saldoInicial = null) {
   pendingExcelData = rows;
+  excelDetectedSaldoInicial = saldoInicial;
   const dlg = $("#dlg-excel");
   if (!dlg) return;
 
-  $("#excel-file-info").textContent = `Ficheiro: ${fileName} · ${rows.length} linha(s) encontrada(s)`;
+  let infoText = `Ficheiro: ${fileName} · ${rows.length} registo(s) identificado(s)`;
+  if (saldoInicial && saldoInicial > 0) {
+    infoText += ` · Saldo Inicial detectado: ${m(saldoInicial)}`;
+  }
+  $("#excel-file-info").textContent = infoText;
 
   // Sugestão automática de módulo conforme cabeçalhos
   const colKeys = Object.keys(rows[0] || {}).map(k => k.toLowerCase());
@@ -2222,7 +2350,7 @@ function showExcelImportDialog(fileName, rows) {
     selectTarget.value = "ter";
   } else if (colKeys.some(k => k.includes("plano") || k.includes("classe") || k.includes("rubrica"))) {
     selectTarget.value = "pc";
-  } else if (colKeys.some(k => k.includes("extrato") || k.includes("debito") || k.includes("débito") || k.includes("credito") || k.includes("crédito") || k.includes("entrada") || k.includes("saida") || k.includes("saída"))) {
+  } else if (colKeys.some(k => k.includes("extrato") || k.includes("debito") || k.includes("débito") || k.includes("credito") || k.includes("crédito") || k.includes("entrada") || k.includes("saida") || k.includes("saída") || k.includes("saldo"))) {
     selectTarget.value = "mov";
   } else {
     // Fallback inteligente para a página ou aba ativa
@@ -2326,11 +2454,31 @@ function confirmExcelImport() {
   // 1. MÓDULO MOVIMENTOS BANCÁRIOS / TESOURARIA
   if (target === "mov") {
     if (!Array.isArray(S.mov)) S.mov = [];
+    if (typeof excelDetectedSaldoInicial === "number" && excelDetectedSaldoInicial > 0) {
+      S.ini = excelDetectedSaldoInicial;
+    }
+
     pendingExcelData.forEach(r => {
-      const desc = getCol(r, ["descrição", "descricao", "desc", "historico", "detalhe"]);
+      const desc = getCol(r, ["descrição", "descricao", "desc", "historico", "detalhe", "detalhes", "transação", "transacao", "movimento", "rubrica"]);
       if (!desc) return;
-      const entrada = normalizeNum(getCol(r, ["entrada", "in", "credito", "crédito", "recebimento"]));
-      const saida = normalizeNum(getCol(r, ["saída", "saida", "out", "debito", "débito", "pagamento"]));
+      const descLower = desc.toLowerCase().trim();
+
+      // Se a própria linha for o Saldo Inicial da folha / extracto
+      if (descLower.includes("saldo inicial") || descLower.includes("saldo anterior") || /saldo\s+\d{1,2}[\/\.]\d{1,2}/.test(descLower)) {
+        const inVal = normalizeNum(getCol(r, ["entrada", "in", "credito", "crédito", "recebimento", "saldo", "valor"]));
+        if (inVal > 0 && S.ini === 0) S.ini = inVal;
+        return; // Captura o saldo inicial no S.ini e evita lançar como movimento operacional duplicado
+      }
+
+      let entrada = normalizeNum(getCol(r, ["entrada", "entradas", "in", "credito", "crédito", "recebimento", "deposito", "depósito", "valor entrada"]));
+      let saida = normalizeNum(getCol(r, ["saída", "saida", "saídas", "out", "debito", "débito", "pagamento", "despesa", "valor saída"]));
+
+      // Se não houver colunas separadas de Entrada e Saída, procurar coluna unificada de Valor
+      if (entrada <= 0 && saida <= 0) {
+        const val = normalizeNum(getCol(r, ["valor", "montante", "quantia", "importancia"]));
+        if (val > 0) entrada = val;
+        else if (val < 0) saida = Math.abs(val);
+      }
       if (entrada <= 0 && saida <= 0) return;
 
       const date = normalizeDate(getCol(r, ["data", "date", "data valor", "data movimento"]));
@@ -2905,12 +3053,23 @@ function setupGlobalListeners() {
       return;
     }
     if (b.id === "confirm-ok") {
-      if (pendingConfirmAction) {
-        pendingConfirmAction();
-        pendingConfirmAction = null;
-      }
       const dlg = $("#dlg-confirm");
       if (dlg) dlg.close();
+      if (pendingConfirmAction) {
+        const action = pendingConfirmAction;
+        pendingConfirmAction = null;
+        try {
+          const res = action();
+          if (res && typeof res.then === "function") {
+            res.catch(err => {
+              console.error("Erro na ação confirmada:", err);
+              toast("Erro ao processar: " + (err.message || "Erro de execução"));
+            });
+          }
+        } catch (err) {
+          console.error("Erro síncrono:", err);
+        }
+      }
       return;
     }
 

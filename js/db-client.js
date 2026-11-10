@@ -8,10 +8,10 @@ const _esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": 
 // Limpeza única e definitiva de dados fictícios antigos salvos em cache local
 try {
   if (typeof window !== "undefined" && typeof localStorage !== "undefined") {
-    if (localStorage.getItem("lecasu_mocks_purged_v2") !== "true") {
+    if (localStorage.getItem("lecasu_mocks_purged_v3") !== "true") {
       localStorage.removeItem("lecasu-recon-v1");
       localStorage.removeItem("lecasu_state_updated_at");
-      localStorage.setItem("lecasu_mocks_purged_v2", "true");
+      localStorage.setItem("lecasu_mocks_purged_v3", "true");
     }
   }
 } catch (e) {}
