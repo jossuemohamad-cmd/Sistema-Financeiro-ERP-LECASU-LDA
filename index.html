@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="pt">
+<head>
+  <meta charset="utf-8">
+  <title>LECASU – Sistema Financeiro ERP</title>
+  <link rel="icon" type="image/png" href="assets/favicon.png">
+  <script>
+    try {
+      const token = localStorage.getItem("lecasu_auth_token");
+      if (token) {
+        window.location.replace("dashboard.html");
+      } else {
+        window.location.replace("login.html");
+      }
+    } catch (e) {
+      window.location.replace("login.html");
+    }
+  </script>
+</head>
+<body>
+  <p>Redirecionando para o <a href="login.html">Login</a>...</p>
+</body>
+</html>

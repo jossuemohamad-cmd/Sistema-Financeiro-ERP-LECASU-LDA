@@ -1,0 +1,145 @@
+-- Schema LECASU ERP - PostgreSQL Neon
+CREATE TABLE IF NOT EXISTS tb_usuarios (
+    id VARCHAR(64) PRIMARY KEY,
+    nome VARCHAR(255) NOT NULL,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    senha_hash VARCHAR(255) NOT NULL,
+    cargo VARCHAR(100) DEFAULT 'Administrador Geral',
+    perfil VARCHAR(50) DEFAULT 'admin',
+    avatar VARCHAR(255),
+    ativo BOOLEAN DEFAULT TRUE,
+    ultimo_login TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS tb_lecasu_state (
+    key VARCHAR(64) PRIMARY KEY,
+    state JSONB NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS tb_movimentos (
+    id VARCHAR(64) PRIMARY KEY,
+    date DATE,
+    descricao TEXT,
+    cat VARCHAR(100),
+    entrada NUMERIC(14,2) DEFAULT 0,
+    saida NUMERIC(14,2) DEFAULT 0,
+    ref VARCHAR(100),
+    tipo VARCHAR(100),
+    conta VARCHAR(50),
+    terc VARCHAR(64),
+    doc VARCHAR(100),
+    ext DATE,
+    estado VARCHAR(50),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS tb_faturas_ar (
+    id VARCHAR(64) PRIMARY KEY,
+    no VARCHAR(100),
+    terc VARCHAR(64),
+    date DATE,
+    due DATE,
+    base NUMERIC(14,2) DEFAULT 0,
+    rate NUMERIC(6,4) DEFAULT 0.16,
+    tot NUMERIC(14,2) DEFAULT 0,
+    pay NUMERIC(14,2) DEFAULT 0,
+    sal NUMERIC(14,2) DEFAULT 0,
+    st VARCHAR(50),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS tb_faturas_ap (
+    id VARCHAR(64) PRIMARY KEY,
+    no VARCHAR(100),
+    terc VARCHAR(64),
+    date DATE,
+    due DATE,
+    base NUMERIC(14,2) DEFAULT 0,
+    rate NUMERIC(6,4) DEFAULT 0.16,
+    tot NUMERIC(14,2) DEFAULT 0,
+    pay NUMERIC(14,2) DEFAULT 0,
+    sal NUMERIC(14,2) DEFAULT 0,
+    st VARCHAR(50),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS tb_terceiros (
+    id VARCHAR(64) PRIMARY KEY,
+    cod VARCHAR(50) UNIQUE,
+    nome VARCHAR(255) NOT NULL,
+    tipo VARCHAR(50),
+    nuit VARCHAR(50),
+    tel VARCHAR(100),
+    email VARCHAR(150),
+    cidade VARCHAR(100),
+    saldo NUMERIC(14,2) DEFAULT 0,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS tb_plano_contas (
+    id VARCHAR(64) PRIMARY KEY,
+    cod VARCHAR(50) UNIQUE,
+    nome VARCHAR(255) NOT NULL,
+    classe VARCHAR(50),
+    tipo VARCHAR(50),
+    saldo NUMERIC(14,2) DEFAULT 0,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS tb_material_produtos (
+    id VARCHAR(64) PRIMARY KEY,
+    cod VARCHAR(50) UNIQUE,
+    nome VARCHAR(255) NOT NULL,
+    cat VARCHAR(100),
+    unidade VARCHAR(20),
+    qtd NUMERIC(12,2) DEFAULT 0,
+    custo NUMERIC(14,2) DEFAULT 0,
+    preco NUMERIC(14,2) DEFAULT 0,
+    min NUMERIC(12,2) DEFAULT 0,
+    forn VARCHAR(100),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS tb_colaboradores (
+    id VARCHAR(64) PRIMARY KEY,
+    cod VARCHAR(50) UNIQUE,
+    nome VARCHAR(255) NOT NULL,
+    cargo VARCHAR(150),
+    dept VARCHAR(100),
+    data_adm DATE,
+    salario NUMERIC(14,2) DEFAULT 0,
+    nuit VARCHAR(50),
+    bi VARCHAR(50),
+    inss VARCHAR(50),
+    estado VARCHAR(50),
+    tel VARCHAR(100),
+    email VARCHAR(150),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS tb_ativos_inventario (
+    id VARCHAR(64) PRIMARY KEY,
+    cod VARCHAR(50) UNIQUE,
+    nome VARCHAR(255) NOT NULL,
+    cat VARCHAR(100),
+    marca VARCHAR(150),
+    serie VARCHAR(150),
+    qtd NUMERIC(12,2) DEFAULT 1,
+    unidade VARCHAR(20),
+    local VARCHAR(150),
+    resp VARCHAR(150),
+    data_aq DATE,
+    val_unit NUMERIC(14,2) DEFAULT 0,
+    val_tot NUMERIC(14,2) DEFAULT 0,
+    forn VARCHAR(150),
+    doc VARCHAR(100),
+    estado VARCHAR(50),
+    ult_ver DATE,
+    obs TEXT,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+

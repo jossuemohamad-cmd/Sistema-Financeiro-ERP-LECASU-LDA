@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="pt">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>LECASU – Acesso ao Sistema Financeiro ERP</title>
+  <link rel="icon" type="image/png" href="assets/favicon.png">
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    body.login-page {
+      min-height: 100vh;
+      min-height: 100dvh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at top right, #fff3e6 0%, #f4f6f9 55%, #e8ecf2 100%);
+      margin: 0;
+      padding: 24px;
+      font-family: "Inter", system-ui, -apple-system, sans-serif;
+    }
+
+    .login-container {
+      width: 100%;
+      max-width: 440px;
+      background: #ffffff;
+      border: 1px solid var(--bd);
+      border-radius: 16px;
+      box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15, 23, 42, 0.04);
+      padding: 36px 32px 32px;
+      box-sizing: border-box;
+      position: relative;
+    }
+
+    .login-header {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+
+    .login-logo {
+      height: 48px;
+      width: auto;
+      object-fit: contain;
+      margin-bottom: 18px;
+    }
+
+    .login-header h1 {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--tx);
+      margin: 0 0 6px;
+      letter-spacing: -0.3px;
+    }
+
+    .login-header p {
+      font-size: 13px;
+      color: var(--mu);
+      margin: 0;
+    }
+
+    .login-form {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      text-align: left;
+    }
+
+    .form-group label {
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--tx);
+    }
+
+    .input-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .input-icon {
+      position: absolute;
+      left: 12px;
+      color: var(--mu);
+      pointer-events: none;
+      display: flex;
+      align-items: center;
+    }
+
+    .login-input {
+      width: 100%;
+      box-sizing: border-box;
+      height: 44px;
+      padding: 10px 14px 10px 40px;
+      font-size: 14px;
+      border: 1px solid var(--bd);
+      border-radius: 9px;
+      background: #ffffff;
+      color: var(--tx);
+      transition: all 0.2s ease;
+      font-family: inherit;
+    }
+
+    .login-input:focus {
+      outline: none;
+      border-color: var(--ac);
+      box-shadow: 0 0 0 3px rgba(254, 129, 0, 0.15);
+    }
+
+    .toggle-pwd {
+      position: absolute;
+      right: 12px;
+      background: none;
+      border: none;
+      color: var(--mu);
+      cursor: pointer;
+      padding: 4px;
+      display: flex;
+      align-items: center;
+    }
+
+    .toggle-pwd:hover {
+      color: var(--tx);
+    }
+
+    .login-btn {
+      height: 46px;
+      background: var(--ac);
+      color: #ffffff;
+      border: none;
+      border-radius: 9px;
+      font-size: 14.5px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: background 0.2s, transform 0.1s;
+      margin-top: 6px;
+      box-shadow: 0 4px 12px rgba(254, 129, 0, 0.25);
+    }
+
+    .login-btn:hover {
+      background: var(--ach);
+    }
+
+    .login-btn:active {
+      transform: scale(0.99);
+    }
+
+    .login-error {
+      display: none;
+      background: var(--erb);
+      border: 1px solid #fecdd3;
+      color: var(--er);
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 12.5px;
+      font-weight: 500;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .login-footer {
+      margin-top: 24px;
+      padding-top: 18px;
+      border-top: 1px solid var(--bd);
+      text-align: center;
+      font-size: 11.5px;
+      color: var(--mu);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .login-footer .status-ssl {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      color: #047857;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body class="login-page">
+  <div class="login-container">
+    <div class="login-header">
+      <img src="assets/logo.png" alt="LECASU Energy and Engineering Solutions" class="login-logo">
+      <h1>Sistema Financeiro ERP</h1>
+      <p>Acesso Seguro e Autenticação Corporativa</p>
+    </div>
+
+    <div id="login-error" class="login-error">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="12" y1="8" x2="12" y2="12"/>
+        <line x1="12" y1="16" x2="12.01" y2="16"/>
+      </svg>
+      <span id="login-error-msg">Credenciais inválidas.</span>
+    </div>
+
+    <form class="login-form" id="form-login">
+      <div class="form-group">
+        <label for="login-email">Email do Utilizador</label>
+        <div class="input-wrapper">
+          <span class="input-icon">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+              <polyline points="22,6 12,13 2,6"/>
+            </svg>
+          </span>
+          <input type="email" id="login-email" class="login-input" placeholder="jossuemohamad@gmail.com" value="jossuemohamad@gmail.com" required autofocus autocomplete="username">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="login-pwd">Palavra-passe (Senha)</label>
+        <div class="input-wrapper">
+          <span class="input-icon">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+          </span>
+          <input type="password" id="login-pwd" class="login-input" placeholder="Digite a sua senha" value="Lecasu@2026," required autocomplete="current-password">
+          <button type="button" class="toggle-pwd" id="btn-toggle-pwd" title="Mostrar/Ocultar senha">
+            <svg id="eye-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <button type="submit" class="login-btn" id="btn-login-submit">
+        <span>Iniciar Sessão</span>
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="5" y1="12" x2="19" y2="12"/>
+          <polyline points="12 5 19 12 12 19"/>
+        </svg>
+      </button>
+    </form>
+
+    <div class="login-footer">
+      <div class="status-ssl">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+        </svg>
+        <span>Conexão Segura SSL · Neon PostgreSQL</span>
+      </div>
+      <div>LECASU, LDA. · Soluções de Energia e Engenharia © 2026</div>
+    </div>
+  </div>
+
+  <script>
+    // Se já estiver autenticado, redireciona para o Dashboard
+    try {
+      const token = localStorage.getItem("lecasu_auth_token");
+      if (token) {
+        window.location.replace("dashboard.html");
+      }
+    } catch (e) {}
+
+    // Alternar visibilidade da senha
+    const btnToggle = document.getElementById("btn-toggle-pwd");
+    const inputPwd = document.getElementById("login-pwd");
+    if (btnToggle && inputPwd) {
+      btnToggle.addEventListener("click", () => {
+        const isPwd = inputPwd.type === "password";
+        inputPwd.type = isPwd ? "text" : "password";
+      });
+    }
+
+    // Processamento de Login
+    const form = document.getElementById("form-login");
+    const errBox = document.getElementById("login-error");
+    const errMsg = document.getElementById("login-error-msg");
+    const btnSubmit = document.getElementById("btn-login-submit");
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      errBox.style.display = "none";
+      btnSubmit.disabled = true;
+      btnSubmit.innerHTML = '<span>Verificando...</span>';
+
+      const email = document.getElementById("login-email").value.trim();
+      const password = document.getElementById("login-pwd").value;
+
+      try {
+        const res = await fetch("/api/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password })
+        });
+
+        const data = await res.json();
+
+        if (res.ok && data.success && data.token) {
+          // Salva sessão localmente
+          localStorage.setItem("lecasu_auth_token", data.token);
+          localStorage.setItem("lecasu_auth_user", JSON.stringify(data.user));
+          
+          btnSubmit.innerHTML = '<span>Acesso Permitido! Redirecionando...</span>';
+          setTimeout(() => {
+            window.location.replace("dashboard.html");
+          }, 350);
+          return;
+        }
+
+        // Exibe erro
+        errBox.style.display = "flex";
+        errMsg.textContent = data.message || "Email ou palavra-passe incorrectos.";
+      } catch (err) {
+        // Fallback local se estiver offline
+        if (email.toLowerCase() === "jossuemohamad@gmail.com" && password === "Lecasu@2026,") {
+          const fallbackUser = {
+            id: "usr_admin_1",
+            nome: "Josue Mahomad Esmael",
+            email: "jossuemohamad@gmail.com",
+            cargo: "Director Geral & Administrador",
+            perfil: "admin"
+          };
+          localStorage.setItem("lecasu_auth_token", "token_offline_" + Date.now());
+          localStorage.setItem("lecasu_auth_user", JSON.stringify(fallbackUser));
+          window.location.replace("dashboard.html");
+          return;
+        }
+        errBox.style.display = "flex";
+        errMsg.textContent = "Falha ao conectar ao servidor. Verifique a sua conexão.";
+      } finally {
+        btnSubmit.disabled = false;
+        btnSubmit.innerHTML = '<span>Iniciar Sessão</span><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>';
+      }
+    });
+  </script>
+</body>
+</html>
+
