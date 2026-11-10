@@ -1361,25 +1361,7 @@ function renderConfiguracoesView() {
   const totAt = (S.ativos || []).length;
 
   return `
-    <div class="bar">
-      <div class="filters-wrap">
-        <button type="button" class="btn-sec" data-scroll-to="card-empresa">
-          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16"/></svg>
-          <span>Empresa & Contactos</span>
-        </button>
-        <button type="button" class="btn-sec" data-scroll-to="card-fiscal">
-          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v12"/><path d="M6 12h12"/></svg>
-          <span>Fiscal & Moçambique</span>
-        </button>
-        <button type="button" class="btn-sec" data-scroll-to="card-neon">
-          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
-          <span>PostgreSQL Neon</span>
-        </button>
-        <button type="button" class="btn-sec" data-scroll-to="card-backup">
-          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-          <span>Segurança & Backup</span>
-        </button>
-      </div>
+    <div class="bar" style="justify-content: flex-end;">
       <div class="bar-search-actions">
         <button class="p" id="save-config">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1394,7 +1376,7 @@ function renderConfiguracoesView() {
 
     <div class="config-grid">
       <!-- Card 1: Dados da Empresa -->
-      <div class="config-card" id="card-empresa">
+      <div class="config-card" id="card-empresa" style="grid-column: 1 / -1;">
         <h3>
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M3 21h18"/>
@@ -1404,29 +1386,31 @@ function renderConfiguracoesView() {
           </svg>
           <span>Identificação da Empresa</span>
         </h3>
-        <div class="form-group-row">
-          <label>Nome Comercial / Denominação Social *</label>
-          <input type="text" id="cfg_empresa" value="${esc(cfg.empresa || "LECASU, LDA.")}" placeholder="Ex: LECASU, LDA.">
-        </div>
-        <div class="form-group-row">
-          <label>NUIT (Número Único de Identificação Tributária) *</label>
-          <input type="text" id="cfg_nuit" value="${esc(cfg.nuit || "400999888")}" placeholder="Ex: 400999888">
-        </div>
-        <div class="form-group-row">
-          <label>Ramo de Actividade / Objeto Social</label>
-          <input type="text" id="cfg_actividade" value="${esc(cfg.actividade || "")}" placeholder="Ex: Energia Solar e Instalações Elétricas">
-        </div>
-        <div class="form-group-row">
-          <label>Morada da Sede Social</label>
-          <input type="text" id="cfg_morada" value="${esc(cfg.morada || "")}" placeholder="Ex: Av. 24 de Julho, n.º 1250, Maputo">
-        </div>
-        <div class="form-group-row">
-          <label>Contacto Telefónico Corporativo</label>
-          <input type="text" id="cfg_contacto" value="${esc(cfg.contacto || "")}" placeholder="Ex: +258 84 123 4567">
-        </div>
-        <div class="form-group-row">
-          <label>Email Institucional / Faturação</label>
-          <input type="email" id="cfg_email" value="${esc(cfg.email || "")}" placeholder="Ex: financeiro@lecasu.co.mz">
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px;">
+          <div class="form-group-row">
+            <label>Nome Comercial / Denominação Social *</label>
+            <input type="text" id="cfg_empresa" value="${esc(cfg.empresa || "LECASU, LDA.")}" placeholder="Ex: LECASU, LDA.">
+          </div>
+          <div class="form-group-row">
+            <label>NUIT (Número Único de Identificação Tributária) *</label>
+            <input type="text" id="cfg_nuit" value="${esc(cfg.nuit || "400999888")}" placeholder="Ex: 400999888">
+          </div>
+          <div class="form-group-row">
+            <label>Ramo de Actividade / Objeto Social</label>
+            <input type="text" id="cfg_actividade" value="${esc(cfg.actividade || "")}" placeholder="Ex: Energia Solar e Instalações Elétricas">
+          </div>
+          <div class="form-group-row">
+            <label>Morada da Sede Social</label>
+            <input type="text" id="cfg_morada" value="${esc(cfg.morada || "")}" placeholder="Ex: Av. 24 de Julho, n.º 1250, Maputo">
+          </div>
+          <div class="form-group-row">
+            <label>Contacto Telefónico Corporativo</label>
+            <input type="text" id="cfg_contacto" value="${esc(cfg.contacto || "")}" placeholder="Ex: +258 84 123 4567">
+          </div>
+          <div class="form-group-row">
+            <label>Email Institucional / Faturação</label>
+            <input type="email" id="cfg_email" value="${esc(cfg.email || "")}" placeholder="Ex: financeiro@lecasu.co.mz">
+          </div>
         </div>
       </div>
 
@@ -1464,41 +1448,43 @@ function renderConfiguracoesView() {
         </div>
       </div>
 
-      <!-- Card Neon PostgreSQL -->
-      <div class="config-card" id="card-neon" style="grid-column: 1 / -1; border-left: 4px solid #047857">
-        <h3>
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#047857" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <ellipse cx="12" cy="5" rx="9" ry="3"/>
-            <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
-            <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
-          </svg>
-          <span>Base de Dados PostgreSQL (Neon Cloud)</span>
-        </h3>
-        <p style="margin:4px 0 14px;color:var(--mu);font-size:13px">
-          O ERP está conectado à instância gerenciada Neon PostgreSQL (AWS us-east-2) com persistência em tempo real e sincronização híbrida com o cache local.
-        </p>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-bottom:16px">
-          <div style="background:var(--bg);padding:10px 14px;border-radius:8px">
-            <small style="color:var(--mu)">Provedor Cloud</small>
-            <div style="font-weight:600;color:var(--tx)">Neon Serverless PostgreSQL</div>
-          </div>
-          <div style="background:var(--bg);padding:10px 14px;border-radius:8px">
-            <small style="color:var(--mu)">Região AWS</small>
-            <div style="font-weight:600;color:var(--tx)">us-east-2 (Ohio)</div>
-          </div>
-          <div style="background:var(--bg);padding:10px 14px;border-radius:8px">
-            <small style="color:var(--mu)">Segurança & Canal</small>
-            <div style="font-weight:600;color:#047857">SSL Require & Channel Binding</div>
+      <!-- Card 3: Base de Dados Neon PostgreSQL (Ao lado de Parâmetros) -->
+      <div class="config-card" id="card-neon" style="border-left: 4px solid #047857; display: flex; flex-direction: column; justify-content: space-between;">
+        <div>
+          <h3>
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#047857" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <ellipse cx="12" cy="5" rx="9" ry="3"/>
+              <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
+              <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+            </svg>
+            <span>Base de Dados PostgreSQL (Neon Cloud)</span>
+          </h3>
+          <p style="margin:4px 0 14px;color:var(--mu);font-size:13px;line-height:1.5">
+            O ERP está conectado à instância gerenciada Neon PostgreSQL (AWS us-east-2) com persistência em tempo real e sincronização híbrida com o cache local.
+          </p>
+          <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">
+            <div style="background:var(--bg);padding:9px 12px;border-radius:8px;display:flex;justify-content:space-between;align-items:center">
+              <small style="color:var(--mu)">Provedor Cloud</small>
+              <span style="font-weight:600;color:var(--tx);font-size:13px">Neon Serverless PostgreSQL</span>
+            </div>
+            <div style="background:var(--bg);padding:9px 12px;border-radius:8px;display:flex;justify-content:space-between;align-items:center">
+              <small style="color:var(--mu)">Região AWS</small>
+              <span style="font-weight:600;color:var(--tx);font-size:13px">us-east-2 (Ohio)</span>
+            </div>
+            <div style="background:var(--bg);padding:9px 12px;border-radius:8px;display:flex;justify-content:space-between;align-items:center">
+              <small style="color:var(--mu)">Segurança & Canal</small>
+              <span style="font-weight:600;color:#047857;font-size:13px">SSL Require & Channel Binding</span>
+            </div>
           </div>
         </div>
-        <div style="display:flex;gap:10px;flex-wrap:wrap">
-          <button class="btn-sec" id="btn-test-db" type="button">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;padding-top:10px">
+          <button class="btn-sec" id="btn-test-db" type="button" style="flex:1;min-width:130px;justify-content:center">
             <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
             </svg>
             <span>Testar Conexão</span>
           </button>
-          <button class="p" id="btn-sync-db" type="button">
+          <button class="p" id="btn-sync-db" type="button" style="flex:1;min-width:170px;justify-content:center">
             <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <polyline points="23 4 23 10 17 10"/>
               <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>

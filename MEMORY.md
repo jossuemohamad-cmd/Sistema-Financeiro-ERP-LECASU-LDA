@@ -234,7 +234,10 @@ As regras abaixo resultam de correções diretas feitas pelo utilizador e são *
 
 ### AB. Ocupação Inteligente de Espaços Vazios em Barras de Ações
 * **Recursos Humanos (`rh.html`):** O espaço vazio à esquerda da barra agora possui filtros contextuais por Departamento (`Todos`, `Engenharia Solar`, `Administração & Finanças`, `Operações`, etc.), permitindo segmentar colaboradores em tempo real.
-* **Configurações (`configuracoes.html`):** O espaço vazio da barra agora conta com botões de navegação rápida com ícones SVG para as 4 seções principais (`Empresa & Contactos`, `Fiscal & Moçambique`, `PostgreSQL Neon`, `Segurança & Backup`), com rolagem suave automática e realce em borda laranja.
+* **Configurações (`configuracoes.html`):** A barra superior mantém-se minimalista e limpa, alinhando à direita apenas a ação de `Guardar Configurações`. Os botões de navegação interna foram expressamente removidos por solicitação do utilizador. No grid de cartões:
+  - `Identificação da Empresa` ocupa a largura total superior com distribuição interna responsiva dos campos cadastrais em 2/3 colunas.
+  - `Base de Dados PostgreSQL (Neon Cloud)` fica posicionada **ao lado** de `Parâmetros Contabilísticos e Fiscais (Moçambique)`, com layout vertical compacto e botões de ação organizados, eliminando espaços vazios.
+  - `Estado da Base de Dados e Cópia de Segurança` ocupa a linha inferior com as estatísticas de tabelas e botões de backup/restauro.
 * **Financeiro (`financeiro.html`):** As abas de *Reconciliação Bancária* e *Terceiros* agora dispõem do campo de pesquisa `#q` reativo integrado, eliminando lacunas e tornando todas as tabelas pesquisáveis.
 
 ---
