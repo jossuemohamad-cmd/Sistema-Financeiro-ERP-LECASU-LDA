@@ -97,7 +97,7 @@ try {
             } else {
                 echo json_encode([
                     'success' => false,
-                    'message' => 'Nenhum estado inicial gravado no banco ainda.'
+                    'message' => 'Nenhum estado gravado ainda.'
                 ]);
             }
             exit;
@@ -126,8 +126,8 @@ try {
             if (!empty($state['mov']) && is_array($state['mov'])) {
                 foreach ($state['mov'] as $mv) {
                     neonQuery(
-                        "INSERT INTO tb_movimentos (id, date, \"desc\", cat, \"in\", \"out\", ref, tipo, conta, terc, doc, ext, estado, raw)
-                         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14::jsonb)",
+                        "INSERT INTO tb_movimentos (id, date, \"desc\", cat, \"in\", \"out\", ref, tipo, conta, terc, doc, ext, estado)
+                         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)",
                         [
                             $mv['id'] ?? uniqid('m_'),
                             $mv['date'] ?? null,
@@ -141,8 +141,7 @@ try {
                             $mv['terc'] ?? '',
                             $mv['doc'] ?? '',
                             $mv['ext'] ?? null,
-                            $mv['estado'] ?? 'Reconciliado',
-                            json_encode($mv, JSON_UNESCAPED_UNICODE)
+                            $mv['estado'] ?? 'Reconciliado'
                         ]
                     );
                 }
@@ -152,23 +151,27 @@ try {
             neonQuery("DELETE FROM tb_faturas_ar");
             if (!empty($state['ar']) && is_array($state['ar'])) {
                 foreach ($state['ar'] as $ar) {
+                    $base = (float)($ar['base'] ?? 0);
+                    $rate = (float)($ar['rate'] ?? 0.16);
+                    $tot = (float)($ar['tot'] ?? ($base * (1 + $rate)));
+                    $pay = (float)($ar['pay'] ?? 0);
+                    $sal = (float)($ar['sal'] ?? ($tot - $pay));
+                    $st = $ar['st'] ?? ($sal <= 0.01 ? 'Liquidada' : ($pay > 0 ? 'Parcial' : 'Em aberto'));
                     neonQuery(
-                        "INSERT INTO tb_faturas_ar (id, num, terc, emissao, venc, base, rate, ret, iva, total, pago, status, raw)
-                         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13::jsonb)",
+                        "INSERT INTO tb_faturas_ar (id, no, terc, date, due, base, rate, tot, pay, sal, st)
+                         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)",
                         [
                             $ar['id'] ?? uniqid('ar_'),
-                            $ar['num'] ?? '',
+                            $ar['no'] ?? ($ar['num'] ?? ''),
                             $ar['terc'] ?? '',
-                            $ar['emissao'] ?? null,
-                            $ar['venc'] ?? null,
-                            (float)($ar['base'] ?? 0),
-                            (float)($ar['rate'] ?? 0.16),
-                            (float)($ar['ret'] ?? 0),
-                            (float)($ar['iva'] ?? 0),
-                            (float)($ar['total'] ?? 0),
-                            (float)($ar['pago'] ?? 0),
-                            $ar['status'] ?? 'Pendente',
-                            json_encode($ar, JSON_UNESCAPED_UNICODE)
+                            $ar['date'] ?? ($ar['emissao'] ?? null),
+                            $ar['due'] ?? ($ar['venc'] ?? null),
+                            $base,
+                            $rate,
+                            $tot,
+                            $pay,
+                            $sal,
+                            $st
                         ]
                     );
                 }
@@ -178,22 +181,27 @@ try {
             neonQuery("DELETE FROM tb_faturas_ap");
             if (!empty($state['ap']) && is_array($state['ap'])) {
                 foreach ($state['ap'] as $ap) {
+                    $base = (float)($ap['base'] ?? 0);
+                    $rate = (float)($ap['rate'] ?? 0.16);
+                    $tot = (float)($ap['tot'] ?? ($base * (1 + $rate)));
+                    $pay = (float)($ap['pay'] ?? 0);
+                    $sal = (float)($ap['sal'] ?? ($tot - $pay));
+                    $st = $ap['st'] ?? ($sal <= 0.01 ? 'Liquidada' : ($pay > 0 ? 'Parcial' : 'Em aberto'));
                     neonQuery(
-                        "INSERT INTO tb_faturas_ap (id, num, terc, emissao, venc, base, rate, iva, total, pago, status, raw)
-                         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12::jsonb)",
+                        "INSERT INTO tb_faturas_ap (id, no, terc, date, due, base, rate, tot, pay, sal, st)
+                         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)",
                         [
                             $ap['id'] ?? uniqid('ap_'),
-                            $ap['num'] ?? '',
+                            $ap['no'] ?? ($ap['num'] ?? ''),
                             $ap['terc'] ?? '',
-                            $ap['emissao'] ?? null,
-                            $ap['venc'] ?? null,
-                            (float)($ap['base'] ?? 0),
-                            (float)($ap['rate'] ?? 0.16),
-                            (float)($ap['iva'] ?? 0),
-                            (float)($ap['total'] ?? 0),
-                            (float)($ap['pago'] ?? 0),
-                            $ap['status'] ?? 'Pendente',
-                            json_encode($ap, JSON_UNESCAPED_UNICODE)
+                            $ap['date'] ?? ($ap['emissao'] ?? null),
+                            $ap['due'] ?? ($ap['venc'] ?? null),
+                            $base,
+                            $rate,
+                            $tot,
+                            $pay,
+                            $sal,
+                            $st
                         ]
                     );
                 }
@@ -204,17 +212,18 @@ try {
             if (!empty($state['ter']) && is_array($state['ter'])) {
                 foreach ($state['ter'] as $tr) {
                     neonQuery(
-                        "INSERT INTO tb_terceiros (id, nome, tipo, nuit, tel, email, endereco, raw)
-                         VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb)",
+                        "INSERT INTO tb_terceiros (id, cod, nome, tipo, nuit, tel, email, cidade, saldo)
+                         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
                         [
                             $tr['id'] ?? uniqid('t_'),
+                            $tr['cod'] ?? ($tr['id'] ?? ''),
                             $tr['nome'] ?? '',
                             $tr['tipo'] ?? 'Cliente',
                             $tr['nuit'] ?? '',
                             $tr['tel'] ?? '',
                             $tr['email'] ?? '',
-                            $tr['endereco'] ?? '',
-                            json_encode($tr, JSON_UNESCAPED_UNICODE)
+                            $tr['cidade'] ?? ($tr['endereco'] ?? ''),
+                            (float)($tr['saldo'] ?? 0)
                         ]
                     );
                 }
@@ -225,17 +234,19 @@ try {
             if (!empty($state['materia']) && is_array($state['materia'])) {
                 foreach ($state['materia'] as $mt) {
                     neonQuery(
-                        "INSERT INTO tb_material_produtos (id, cod, descr, cat, qtd, un, prc, raw)
-                         VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb)",
+                        "INSERT INTO tb_material_produtos (id, cod, nome, cat, unidade, qtd, custo, preco, min, forn)
+                         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
                         [
                             $mt['id'] ?? uniqid('mat_'),
                             $mt['cod'] ?? '',
-                            $mt['descr'] ?? '',
+                            $mt['nome'] ?? ($mt['descr'] ?? ''),
                             $mt['cat'] ?? '',
+                            $mt['unidade'] ?? ($mt['un'] ?? 'un'),
                             (float)($mt['qtd'] ?? 0),
-                            $mt['un'] ?? 'un',
-                            (float)($mt['prc'] ?? 0),
-                            json_encode($mt, JSON_UNESCAPED_UNICODE)
+                            (float)($mt['custo'] ?? ($mt['prc'] ?? 0)),
+                            (float)($mt['preco'] ?? ($mt['prc'] ?? 0)),
+                            (float)($mt['min'] ?? 0),
+                            $mt['forn'] ?? ''
                         ]
                     );
                 }
@@ -246,18 +257,18 @@ try {
             if (!empty($state['rh']) && is_array($state['rh'])) {
                 foreach ($state['rh'] as $c) {
                     neonQuery(
-                        "INSERT INTO tb_colaboradores (id, nome, cargo, dept, sal, nuit, inss, sit, raw)
-                         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb)",
+                        "INSERT INTO tb_colaboradores (id, cod, nome, cargo, dept, sal, nuit, inss, sit)
+                         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
                         [
                             $c['id'] ?? uniqid('rh_'),
+                            $c['cod'] ?? ($c['id'] ?? ''),
                             $c['nome'] ?? '',
                             $c['cargo'] ?? '',
                             $c['dept'] ?? '',
                             (float)($c['sal'] ?? 0),
                             $c['nuit'] ?? '',
                             $c['inss'] ?? '',
-                            $c['sit'] ?? 'Ativo',
-                            json_encode($c, JSON_UNESCAPED_UNICODE)
+                            $c['sit'] ?? 'Ativo'
                         ]
                     );
                 }
@@ -268,18 +279,17 @@ try {
             if (!empty($state['ativos']) && is_array($state['ativos'])) {
                 foreach ($state['ativos'] as $at) {
                     neonQuery(
-                        "INSERT INTO tb_ativos_inventario (id, cod, descr, cat, aquis, val, vida, dep, raw)
-                         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb)",
+                        "INSERT INTO tb_ativos_inventario (id, cod, \"desc\", cat, aquis, val, vida, dep)
+                         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
                         [
                             $at['id'] ?? uniqid('at_'),
                             $at['cod'] ?? '',
-                            $at['descr'] ?? '',
+                            $at['desc'] ?? ($at['descr'] ?? ''),
                             $at['cat'] ?? '',
                             $at['aquis'] ?? null,
                             (float)($at['val'] ?? 0),
                             (float)($at['vida'] ?? 5),
-                            (float)($at['dep'] ?? 0),
-                            json_encode($at, JSON_UNESCAPED_UNICODE)
+                            (float)($at['dep'] ?? 0)
                         ]
                     );
                 }
@@ -293,21 +303,27 @@ try {
         }
     }
 
-    // 3. Reset Real do Sistema
+    // 3. Reset Real do Sistema (Zerar Tudo)
     if ($route === 'reset') {
-        // Limpar todas as tabelas operacionais e relacionais no PostgreSQL
-        neonQuery("TRUNCATE TABLE tb_movimentos, tb_faturas_ar, tb_faturas_ap, tb_terceiros, tb_material_produtos, tb_colaboradores, tb_ativos_inventario CASCADE");
+        // Limpar todas as tabelas operacionais no PostgreSQL
+        neonQuery("TRUNCATE TABLE tb_movimentos, tb_faturas_ar, tb_faturas_ap, tb_terceiros, tb_material_produtos, tb_colaboradores, tb_ativos_inventario");
 
-        // Obter template de PGC
-        $resPc = neonQuery("SELECT raw FROM tb_plano_contas ORDER BY cod ASC");
+        // Zera os saldos das contas do Plano de Contas
+        neonQuery("UPDATE tb_plano_contas SET saldo = 0, updated_at = CURRENT_TIMESTAMP");
+
+        // Obter contas PGC estruturadas
+        $resPc = neonQuery("SELECT cod, nome, classe, tipo FROM tb_plano_contas ORDER BY cod ASC");
         $pcTemplate = [];
         if (!empty($resPc['rows'])) {
             foreach ($resPc['rows'] as $r) {
-                $p = is_string($r['raw']) ? json_decode($r['raw'], true) : $r['raw'];
-                if (is_array($p)) {
-                    $p['saldo'] = 0;
-                    $pcTemplate[] = $p;
-                }
+                $pcTemplate[] = [
+                    'id' => $r['cod'],
+                    'cod' => $r['cod'],
+                    'des' => $r['nome'],
+                    'cls' => $r['classe'],
+                    'tipo' => $r['tipo'],
+                    'saldo' => 0
+                ];
             }
         }
 
