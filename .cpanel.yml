@@ -12,4 +12,5 @@ deployment:
     - /bin/cp package.json $DEPLOYPATH
     - /bin/cp manifest.webmanifest $DEPLOYPATH
     - /bin/cp sw.js $DEPLOYPATH
+    - /bin/cp deploy.php $DEPLOYPATH
     - /bin/cp .htaccess $DEPLOYPATH
