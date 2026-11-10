@@ -193,6 +193,25 @@ As regras abaixo resultam de correções diretas feitas pelo utilizador e são *
   * A biblioteca SheetJS está gravada em `js/xlsx.full.min.js`, garantindo funcionamento offline sem depender de CDNs externas.
   * Ao concluir a importação, `saveData()` persiste os dados diretamente no **Neon PostgreSQL** e no `localStorage`.
 
+### W. Design System e Tokens de Identidade Visual (idv.md Adaptado para o ERP)
+* **Tipografia Moderna:** Integração de `"Plus Jakarta Sans"` para toda a interface de usuário (UI) e `"JetBrains Mono"` para valores monetários, tabelas financeiras, códigos de contas e referências.
+* **Escala de Espaçamento Base 4px / 8px:**
+  * `--space-1` (0.25rem / 4px), `--space-2` (0.5rem / 8px), `--space-3` (0.75rem / 12px), `--space-4` (1rem / 16px), `--space-5` (1.25rem / 20px), `--space-6` (1.5rem / 24px), `--space-8` (2rem / 32px), `--space-12` (3rem / 48px), `--space-16` (4rem / 64px).
+* **Escala de Raios de Borda:**
+  * `--radius-xs` (4px), `--radius-sm` (6px), `--radius-md` (10px - botões e inputs), `--radius-lg` (16px - cards), `--radius-xl` (24px - modais e login), `--radius-full` (9999px - badges e pílulas).
+* **Elevação, Sombras e Brilho:**
+  * `--shadow-sm`, `--shadow-md`, `--shadow-lg`, `--glow-button` (`0 0 16px rgba(254, 129, 0, 0.35)`).
+* **Preservação Inegociável da Paleta LECASU:** As diretrizes estruturais de `idv.md` foram adotadas mantendo 100% intactas as cores oficiais da marca: Laranja `#FE8100`, fundo suave `#FFF3E6`, texto grafite `#18202F`, superfícies brancas `#FFFFFF` e fundo neutro `#F4F6F9`.
+
+### X. Sincronização em Tempo Real e Prevenção de Ecrãs em Branco
+* **Fuso Horário Oficial:** `Africa/Maputo` (CAT: GMT+2).
+* **Mês e Ano Padrão:** O ERP inicializa dinamicamente no **Mês Atual** (`11` - Novembro), **Data Atual** (`10/11/2026`) e **Ano Atual** (`2026`). Nenhuma configuração estática de Setembro ('09') pode sobrepor o tempo real, exceto quando o usuário seleciona conscientemente outro mês no cabeçalho durante a sessão.
+* **Relógio em Tempo Real:** O widget de relógio no cabeçalho (`#clock-time`) atualiza a cada segundo com a hora precisa de Maputo.
+* **Blindagem Total Contra Nulos (Sanitization):**
+  * Toda manipulação de estado passa por `sanitizeState(data)` em `js/data.js` e `js/db-client.js`.
+  * `calc()`, `inv()`, `renderDashboardView()` e `setupGlobalListeners()` utilizam fallbacks defensivos (`S.mov || []`, `S.ar || []`, `S.ap || []`), impedindo qualquer `TypeError: S.mov is not iterable` ou quebra de renderização.
+  * O seletor de período no cabeçalho inicializa imediatamente no mês e ano atuais sem depender da conclusão de requisições de rede.
+
 ---
 
 ## 3. Estrutura Modular do Projeto e Persistência

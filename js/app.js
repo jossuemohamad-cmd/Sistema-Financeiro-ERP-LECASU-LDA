@@ -71,8 +71,19 @@ function getRealTimeDate() {
 }
 
 function getActivePeriod() {
+  if (!S || typeof S !== "object") {
+    if (typeof loadData === "function") S = loadData();
+    else S = {};
+  }
   if (!S.config) S.config = {};
   const rt = getRealTimeDate();
+
+  // Se o mês estiver em '09' (Setembro residual) ou sem seleção explícita nesta sessão, sincroniza para o mês actual
+  if (S.config.mes === "09" && !S.config.userSessionSelected) {
+    S.config.mes = rt.mes;
+    S.config.exercicio = rt.ano;
+  }
+
   const ano = S.config.exercicio || rt.ano;
   const mes = S.config.mes || rt.mes;
   const mesObj = MESES.find(m => m.id === mes) || MESES.find(m => m.id === rt.mes) || MESES[11];
@@ -101,46 +112,52 @@ function getActivePeriod() {
 }
 
 function syncHeaderPeriodSelector() {
-  const selMes = document.getElementById("header-periodo-mes");
-  const selAno = document.getElementById("header-periodo-ano");
-  if (!selMes || !selAno) return;
+  try {
+    const selMes = document.getElementById("header-periodo-mes");
+    const selAno = document.getElementById("header-periodo-ano");
+    if (!selMes || !selAno) return;
 
-  const P = getActivePeriod();
-  const rt = getRealTimeDate();
+    const P = getActivePeriod();
+    const rt = getRealTimeDate();
 
-  // Preenche opções de mês se vazio
-  if (!selMes.options.length) {
-    selMes.innerHTML = MESES.map(m => {
-      const isCur = m.id === rt.mes;
-      return `<option value="${m.id}">${m.nome}${isCur ? " (Atual)" : ""}</option>`;
-    }).join("");
-    selMes.addEventListener("change", (e) => {
-      if (!S.config) S.config = {};
-      S.config.mes = e.target.value;
-      S.config.userSelectedPeriod = true;
-      saveData();
-      renderCurrentPage();
-      toast(`Período alterado para: ${getActivePeriod().labelPeriodo}`);
-    });
+    // Preenche opções de mês se vazio
+    if (!selMes.options.length) {
+      selMes.innerHTML = MESES.map(m => {
+        const isCur = m.id === rt.mes;
+        return `<option value="${m.id}">${m.nome}${isCur ? " (Atual)" : ""}</option>`;
+      }).join("");
+      selMes.addEventListener("change", (e) => {
+        if (!S.config) S.config = {};
+        S.config.mes = e.target.value;
+        S.config.userSelectedPeriod = true;
+        S.config.userSessionSelected = true;
+        saveData();
+        renderCurrentPage();
+        toast(`Período alterado para: ${getActivePeriod().labelPeriodo}`);
+      });
+    }
+    selMes.value = P.mes;
+
+    // Preenche opções de ano se vazio
+    if (!selAno.options.length) {
+      selAno.innerHTML = ANOS.map(a => {
+        const isCur = a === rt.ano;
+        return `<option value="${a}">${a}${isCur ? " (Atual)" : ""}</option>`;
+      }).join("");
+      selAno.addEventListener("change", (e) => {
+        if (!S.config) S.config = {};
+        S.config.exercicio = e.target.value;
+        S.config.userSelectedPeriod = true;
+        S.config.userSessionSelected = true;
+        saveData();
+        renderCurrentPage();
+        toast(`Exercício fiscal alterado para: ${getActivePeriod().labelPeriodo}`);
+      });
+    }
+    selAno.value = P.ano;
+  } catch (err) {
+    console.error("Erro ao sincronizar seletor de período:", err);
   }
-  selMes.value = P.mes;
-
-  // Preenche opções de ano se vazio
-  if (!selAno.options.length) {
-    selAno.innerHTML = ANOS.map(a => {
-      const isCur = a === rt.ano;
-      return `<option value="${a}">${a}${isCur ? " (Atual)" : ""}</option>`;
-    }).join("");
-    selAno.addEventListener("change", (e) => {
-      if (!S.config) S.config = {};
-      S.config.exercicio = e.target.value;
-      S.config.userSelectedPeriod = true;
-      saveData();
-      renderCurrentPage();
-      toast(`Exercício fiscal alterado para: ${getActivePeriod().labelPeriodo}`);
-    });
-  }
-  selAno.value = P.ano;
 }
 
 const d = s => s ? s.split("-").reverse().join("/") : "";
@@ -186,10 +203,12 @@ const badge = t => `<span class="b ${stc[t] || "in"}">${esc(t)}</span>`;
 
 // Cálculo de Facturas (Contas a Receber / Contas a Pagar)
 function inv(L, k) {
+  if (!Array.isArray(L)) return [];
+  const movs = (S && Array.isArray(S.mov)) ? S.mov : [];
   return L.map(i => {
-    const iva = r2(i.base * i.rate);
-    const tot = r2(i.base + iva);
-    const pd = r2(S.mov.filter(x => x.doc === i.no).reduce((a, x) => a + ((k === "ar" ? x.in : x.out) || 0), 0));
+    const iva = r2((i.base || 0) * (i.rate || 0.16));
+    const tot = r2((i.base || 0) + iva);
+    const pd = r2(movs.filter(x => x.doc === i.no).reduce((a, x) => a + ((k === "ar" ? x.in : x.out) || 0), 0));
     const sal = r2(tot - pd);
     const P_act = getActivePeriod();
     const dias = sal > 0.005 ? Math.max(0, Math.round((new Date(P_act.refDate) - new Date(i.due)) / 864e5)) : 0;
@@ -313,18 +332,21 @@ const BK = [
 
 // Views de Conteúdo: Dashboard
 function renderDashboardView(R) {
+  if (!R) R = calc();
   const P_act = getActivePeriod();
-  const ok = Math.abs(R.diff) < 0.01;
+  const ok = Math.abs((R && R.diff) || 0) < 0.01;
   const cats = {};
-  R.book.concat(R.ex).forEach(x => {
+  ((R && R.book) || []).concat((R && R.ex) || []).forEach(x => {
     if (x.out) cats[x.cat] = r2((cats[x.cat] || 0) + x.out);
   });
-  const ag = L => BK.map(([l, f]) => [l, r2(L.filter(f).reduce((s, x) => s + x.sal, 0))]);
-  const prox = [...R.or.map(x => ({ ...x, k: "A receber" })), ...R.oa.map(x => ({ ...x, k: "A pagar" }))].sort((a, b) => (a.due < b.due ? -1 : 1));
-  const venc = R.or.filter(x => x.st === "Vencida").length + R.oa.filter(x => x.st === "Vencida").length;
-  const totStockVal = (S.materia || []).reduce((a, x) => a + ((x.qtd || 0) * (x.custo || 0)), 0);
-  const totAtivosVal = (S.ativos || []).reduce((a, x) => a + ((parseFloat(x.qtd) || 1) * (parseFloat(x.valor_unitario) || 0)), 0);
-  const totColabs = (S.rh || []).length;
+  const ag = L => BK.map(([l, f]) => [l, r2(((L || []).filter(f)).reduce((s, x) => s + (x.sal || 0), 0))]);
+  const orList = (R && R.or) || [];
+  const oaList = (R && R.oa) || [];
+  const prox = [...orList.map(x => ({ ...x, k: "A receber" })), ...oaList.map(x => ({ ...x, k: "A pagar" }))].sort((a, b) => (a.due < b.due ? -1 : 1));
+  const venc = orList.filter(x => x.st === "Vencida").length + oaList.filter(x => x.st === "Vencida").length;
+  const totStockVal = ((S && S.materia) || []).reduce((a, x) => a + ((x.qtd || 0) * (x.custo || 0)), 0);
+  const totAtivosVal = ((S && S.ativos) || []).reduce((a, x) => a + ((parseFloat(x.qtd) || 1) * (parseFloat(x.valor_unitario) || 0)), 0);
+  const totColabs = ((S && S.rh) || []).length;
 
   return `
     <div class="kpis">
@@ -1846,54 +1868,62 @@ function navigateToPage(url, pushState = true) {
 }
 
 function renderCurrentPage() {
-  const R = calc();
-  const mainEl = $("#main");
-  if (!mainEl) return;
+  try {
+    const R = calc();
+    const mainEl = $("#main");
+    if (!mainEl) return;
 
-  const tabsEl = $("#tabs");
-  if (tabsEl) {
-    if (currentPage === "fin") {
-      tabsEl.style.display = "flex";
-      const existingBtns = tabsEl.querySelectorAll("button[data-tab]");
-      if (existingBtns.length === TABS.length) {
-        existingBtns.forEach(btn => {
-          btn.classList.toggle("on", btn.dataset.tab === activeTab);
-        });
+    const tabsEl = $("#tabs");
+    if (tabsEl) {
+      if (currentPage === "fin") {
+        tabsEl.style.display = "flex";
+        const existingBtns = tabsEl.querySelectorAll("button[data-tab]");
+        if (existingBtns.length === TABS.length) {
+          existingBtns.forEach(btn => {
+            btn.classList.toggle("on", btn.dataset.tab === activeTab);
+          });
+        } else {
+          tabsEl.innerHTML = TABS.map(([k, l]) => `<button data-tab="${k}" class="${k === activeTab ? "on" : ""}">${l}</button>`).join("");
+        }
       } else {
-        tabsEl.innerHTML = TABS.map(([k, l]) => `<button data-tab="${k}" class="${k === activeTab ? "on" : ""}">${l}</button>`).join("");
+        tabsEl.style.display = "none";
       }
-    } else {
-      tabsEl.style.display = "none";
+    }
+
+    if (currentPage === "dash") {
+      mainEl.innerHTML = renderDashboardView(R);
+      requestAnimationFrame(() => initDashboardCharts(R));
+    } else if (currentPage === "fin") {
+      const tabFns = {
+        rec: () => recTab(R),
+        ar: () => invTab("ar", R.ar),
+        ap: () => invTab("ap", R.ap),
+        ter: terTab,
+        pc: pcTab
+      };
+      mainEl.innerHTML = tabFns[activeTab] ? tabFns[activeTab]() : recTab(R);
+    } else if (currentPage === "terceiros") {
+      mainEl.innerHTML = renderClientesFornecedoresView();
+    } else if (currentPage === "materia") {
+      mainEl.innerHTML = renderMateriaView();
+    } else if (currentPage === "rh") {
+      mainEl.innerHTML = renderRHView();
+    } else if (currentPage === "ativos") {
+      mainEl.innerHTML = renderAtivosView();
+    } else if (currentPage === "relatorios") {
+      mainEl.innerHTML = renderRelatoriosView();
+    } else if (currentPage === "config") {
+      mainEl.innerHTML = renderConfiguracoesView();
+    }
+  } catch (err) {
+    console.error("Erro ao renderizar ecrã:", err);
+    const mainEl = $("#main");
+    if (mainEl && !mainEl.innerHTML.trim()) {
+      mainEl.innerHTML = `<div class="sc" style="padding:24px;text-align:center"><h3>A carregar dados do sistema...</h3><p style="color:var(--mu);margin-top:8px">${esc(err.message)}</p></div>`;
     }
   }
-
-  if (currentPage === "dash") {
-    mainEl.innerHTML = renderDashboardView(R);
-    requestAnimationFrame(() => initDashboardCharts(R));
-  } else if (currentPage === "fin") {
-    const tabFns = {
-      rec: () => recTab(R),
-      ar: () => invTab("ar", R.ar),
-      ap: () => invTab("ap", R.ap),
-      ter: terTab,
-      pc: pcTab
-    };
-    mainEl.innerHTML = tabFns[activeTab] ? tabFns[activeTab]() : recTab(R);
-  } else if (currentPage === "terceiros") {
-    mainEl.innerHTML = renderClientesFornecedoresView();
-  } else if (currentPage === "materia") {
-    mainEl.innerHTML = renderMateriaView();
-  } else if (currentPage === "rh") {
-    mainEl.innerHTML = renderRHView();
-  } else if (currentPage === "ativos") {
-    mainEl.innerHTML = renderAtivosView();
-  } else if (currentPage === "relatorios") {
-    mainEl.innerHTML = renderRelatoriosView();
-  } else if (currentPage === "config") {
-    mainEl.innerHTML = renderConfiguracoesView();
-  }
-  initNotifications();
-  syncHeaderPeriodSelector();
+  try { initNotifications(); } catch (e) {}
+  try { syncHeaderPeriodSelector(); } catch (e) {}
 }
 
 // Inicializadores
@@ -2643,11 +2673,11 @@ function confirmExcelImport() {
 
 // Event Listeners Globais
 function setupGlobalListeners() {
-  restoreSidebarState();
-  updateClock();
-  setInterval(updateClock, 1000);
-  initNotifications();
-  syncHeaderPeriodSelector();
+  try { restoreSidebarState(); } catch (e) {}
+  try { updateClock(); } catch (e) {}
+  try { setInterval(updateClock, 1000); } catch (e) {}
+  try { syncHeaderPeriodSelector(); } catch (e) {}
+  try { initNotifications(); } catch (e) {}
 
   document.addEventListener("click", e => {
     // Dropdown de Notificações
@@ -2934,7 +2964,7 @@ function setupGlobalListeners() {
   });
 
   // Registro do Service Worker para suporte a PWA Desktop
-  if ("serviceWorker" in navigator && window.location.protocol.startsWith("http")) {
+  if (typeof navigator !== "undefined" && "serviceWorker" in navigator && window.location.protocol && window.location.protocol.startsWith("http")) {
     navigator.serviceWorker.register("sw.js").catch(err => {
       console.warn("Service Worker não registrado:", err);
     });

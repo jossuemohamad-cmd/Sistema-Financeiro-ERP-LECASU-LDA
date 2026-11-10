@@ -36,7 +36,7 @@ const EST = [
 const SEED = {
   ini: 245380.5,
   ext: 129613.1,
-  ref: "2026-09-30",
+  ref: "2026-11-10",
   bank: "12.1.1",
   mov: [
     { id: "m12", date: "2026-09-03", desc: "Recebimento FT 2026/041 – Pousada Maré Alta", cat: "Receita", in: 232000.0, out: 0, ref: "TRF-IN-0903", tipo: "Recebimento de Cliente", conta: "41.1", terc: "CLI-001", doc: "FT 2026/041", ext: "2026-09-03", estado: "Reconciliado" },
@@ -66,7 +66,8 @@ const SEED = {
     { id: "m42", date: "2026-11-06", desc: "Recebimento Adiantamento Obra Solar Matola", cat: "Receita", in: 145000.0, out: 0, ref: "TRF-IN-1106", tipo: "Recebimento de Cliente", conta: "41.1", terc: "CLI-001", doc: "FT 2026/048", ext: "2026-11-06", estado: "Reconciliado" },
     { id: "m43", date: "2026-11-08", desc: "Pgto Combustível e Logística de Instalação", cat: "Despesa Operacional", in: 0, out: 4800.0, ref: "POS-1108", tipo: "Despesa Directa", conta: "63.4", terc: "FOR-007", doc: "VD-88902", ext: "2026-11-08", estado: "Reconciliado" },
     { id: "m44", date: "2026-11-09", desc: "Comunicação e Internet Fibra Escritório", cat: "Despesas Extras", in: 0, out: 3500.0, ref: "TRF-OUT-1109", tipo: "Despesa Directa", conta: "63.5", terc: "", doc: "FAT-TM-1109", ext: "2026-11-09", estado: "Reconciliado" }
-  ],
+  ,
+    { id: "m45", date: "2026-11-10", desc: "Recebimento FT 2026/048 – Sistema Solar Comercial", cat: "Receita", in: 115000.0, out: 0, ref: "TRF-IN-1110", tipo: "Recebimento de Cliente", conta: "41.1", terc: "CLI-001", doc: "FT 2026/048", ext: "2026-11-10", estado: "Reconciliado" }],
   ar: [
     { id: "r7", no: "FT 2026/030", date: "2026-07-31", terc: "CLI-005", conta: "41.1", desc: "Manutenção sistema solar – Julho", base: 21500.0, rate: 0.16, due: "2026-08-31" },
     { id: "r8", no: "FT 2026/038", date: "2026-08-20", terc: "CLI-003", conta: "41.1", desc: "Instalação kit solar 3 kWp – escola", base: 75000.0, rate: 0.16, due: "2026-09-19" },
@@ -235,32 +236,43 @@ function getMaputoDateNow() {
 
 let S = loadData();
 
+
+// Função de saneamento para blindar o estado contra nulos/indefinidos e garantir tempo real
+function sanitizeState(data) {
+  const rt = getMaputoDateNow();
+  if (!data || typeof data !== "object") {
+    data = structuredClone(SEED);
+  }
+  if (!Array.isArray(data.mov)) data.mov = Array.isArray(SEED.mov) ? structuredClone(SEED.mov) : [];
+  if (!Array.isArray(data.ar)) data.ar = Array.isArray(SEED.ar) ? structuredClone(SEED.ar) : [];
+  if (!Array.isArray(data.ap)) data.ap = Array.isArray(SEED.ap) ? structuredClone(SEED.ap) : [];
+  if (!Array.isArray(data.ter)) data.ter = Array.isArray(SEED.ter) ? structuredClone(SEED.ter) : [];
+  if (!Array.isArray(data.materia)) data.materia = Array.isArray(SEED.materia) ? structuredClone(SEED.materia) : [];
+  if (!Array.isArray(data.rh)) data.rh = Array.isArray(SEED.rh) ? structuredClone(SEED.rh) : [];
+  if (!Array.isArray(data.ativos)) data.ativos = Array.isArray(SEED.ativos) ? structuredClone(SEED.ativos) : [];
+  if (!Array.isArray(data.bank)) data.bank = Array.isArray(SEED.bank) ? structuredClone(SEED.bank) : [];
+  if (!Array.isArray(data.pc)) data.pc = Array.isArray(SEED.pc) ? structuredClone(SEED.pc) : [];
+  if (typeof data.ini !== "number" || isNaN(data.ini)) data.ini = typeof SEED.ini === "number" ? SEED.ini : 0;
+  if (typeof data.ext !== "number" || isNaN(data.ext)) data.ext = typeof SEED.ext === "number" ? SEED.ext : 0;
+  if (!data.config || typeof data.config !== "object") data.config = structuredClone(SEED.config || {});
+
+  // Mês e ano atual em tempo real Moçambique (Africa/Maputo, CAT: UTC+2)
+  if (!data.config.mes || data.config.mes === "09" || !data.config.userSessionSelected) {
+    data.config.mes = rt.mes;
+    data.config.exercicio = rt.ano;
+  }
+  data.ref = rt.iso;
+  return data;
+}
+if (typeof window !== "undefined") window.sanitizeState = sanitizeState;
+
 function loadData() {
   const rt = getMaputoDateNow();
   try {
     const j = localStorage.getItem(KEY);
     if (j) {
       const data = JSON.parse(j);
-      if (!data.materia) data.materia = structuredClone(SEED.materia);
-      if (!data.rh) data.rh = structuredClone(SEED.rh);
-      if (!data.ativos || !data.ativos.length || !data.ativos[0].valor_unitario) {
-        data.ativos = structuredClone(SEED.ativos);
-      }
-      if (!data.config) data.config = structuredClone(SEED.config);
-      // Se não houver seleção manual prévia do utilizador, sincroniza com o mês/ano actual em tempo real
-      if (!data.config.userSelectedPeriod) {
-        data.config.mes = rt.mes;
-        data.config.exercicio = rt.ano;
-      }
-      // Assegura que novas movimentações de Novembro estão presentes
-      if (Array.isArray(data.mov)) {
-        for (const nm of SEED.mov) {
-          if (!data.mov.some(x => x.id === nm.id)) {
-            data.mov.push(nm);
-          }
-        }
-      }
-      return data;
+      return sanitizeState(data);
     }
   } catch (e) {
     console.error("Erro ao ler localStorage", e);
@@ -268,7 +280,8 @@ function loadData() {
   const cloned = structuredClone(SEED);
   cloned.config.mes = rt.mes;
   cloned.config.exercicio = rt.ano;
-  return cloned;
+  cloned.ref = rt.iso;
+  return sanitizeState(cloned);
 }
 
 function notifySync() {
@@ -295,10 +308,11 @@ function saveData() {
 }
 
 function getZeroState() {
+  const rt = getMaputoDateNow();
   return {
     ini: 0,
     ext: 0,
-    ref: "",
+    ref: rt.iso,
     mov: [],
     ar: [],
     ap: [],
@@ -314,33 +328,20 @@ function getZeroState() {
       { id: "b3", nome: "BCI - Caixa e Tesouraria", num: "0003.5555.4444.22", saldo: 0, moeda: "MZN" }
     ],
     pc: Array.isArray(SEED.pc) ? SEED.pc.map(p => ({ ...p, saldo: 0 })) : [],
-    config: structuredClone(SEED.config || {
+    config: {
       empresa: "LECASU, LDA.",
-      nuit: "400123456",
-      actividade: "Energia e Engenharia",
-      morada: "Av. 24 de Julho, Maputo",
-      contacto: "+258 84 123 4567",
-      email: "info@lecasu.co.mz",
+      nuit: "400999888",
+      actividade: "Energias Renováveis, Instalações Solares e Engenharia Elétrica",
+      morada: "Av. 24 de Julho, n.º 1250, 4.º Andar, Maputo, Moçambique",
+      contacto: "+258 84 123 4567 / +258 21 300 400",
+      email: "financeiro@lecasu.co.mz",
       moeda: "MZN",
-      taxa_iva: 16,
-      exercicio: 2026,
-      banco_padrao: "Millennium BIM",
-      contabilista: "Gabinete Contas Certas (OCAM)"
-    })
+      taxa_iva: 0.16,
+      exercicio: rt.ano,
+      mes: rt.mes,
+      banco_padrao: "12.1.1",
+      contabilista: "Gabinete Contas Certas (Certificado n.º 4412/OCAM)"
+    }
   };
-}
-
-function resetData() {
-  try {
-    localStorage.removeItem(KEY);
-  } catch (e) {}
-  S = getZeroState();
-  try {
-    localStorage.setItem(KEY, JSON.stringify(S));
-  } catch (e) {}
-  notifySync();
-  if (typeof DBClient !== "undefined" && typeof DBClient.pushState === "function") {
-    DBClient.pushState(S);
-  }
 }
 

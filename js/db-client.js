@@ -21,11 +21,12 @@ const DBClient = {
         if (data.status === "online") {
           this.isOnline = true;
           this.updateStatusBadge(true, "Neon PostgreSQL Online");
-          // Sincroniza estado inicial do banco Neon
           await this.pullState();
           return;
         }
       }
+      this.isOnline = false;
+      this.updateStatusBadge(false, "Modo Local (Offline)");
     } catch (e) {
       // Servidor local não iniciado ou rodando via file://
       this.isOnline = false;
@@ -141,7 +142,7 @@ const DBClient = {
           const remoteVer = result.updated_at;
           
           if (!localVer || !remoteVer || new Date(remoteVer) > new Date(localVer)) {
-            S = result.state;
+            S = typeof sanitizeState === "function" ? sanitizeState(result.state) : result.state;
             localStorage.setItem(KEY, JSON.stringify(S));
             if (remoteVer) localStorage.setItem("lecasu_state_updated_at", remoteVer);
             if (typeof renderCurrentPage === "function") {
@@ -194,11 +195,11 @@ const DBClient = {
       if (res.ok && data.success) {
         localStorage.removeItem(KEY);
         if (data.state) {
-          S = data.state;
+          S = typeof sanitizeState === "function" ? sanitizeState(data.state) : data.state;
         } else if (typeof getZeroState === "function") {
           S = getZeroState();
         } else {
-          S = structuredClone(SEED);
+          S = typeof sanitizeState === "function" ? sanitizeState(structuredClone(SEED)) : structuredClone(SEED);
         }
         localStorage.setItem(KEY, JSON.stringify(S));
         localStorage.setItem("lecasu_state_updated_at", data.timestamp || new Date().toISOString());

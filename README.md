@@ -86,3 +86,4 @@ node test_excel_import.js
 ## 📄 Licença e Propriedade
 
 Desenvolvido para **LECASU, LDA.** — Todos os direitos reservados © 2026.
+

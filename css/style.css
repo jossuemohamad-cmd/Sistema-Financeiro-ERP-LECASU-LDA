@@ -1,35 +1,136 @@
 /* ==========================================================================
    LECASU, LDA. - Sistema Financeiro ERP
    Folha de Estilos Principal (style.css)
-   Conforme especificação em agentes.md
+   Conforme especificações idv.md & agentes.md
    ========================================================================== */
 
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
 :root {
-  --bg: #f4f6f9;
-  --cd: #ffffff;
-  --tx: #18202f;
-  --mu: #64748b;
-  --bd: #e2e8f0;
-  
-  /* Cor Oficial da Marca LECASU (do Logotipo Oficial) */
-  --ac: #fe8100;         /* Laranja Oficial LECASU (Energia e Engenharia) */
-  --ach: #e57400;        /* Laranja escuro para hover e cliques */
-  --ab: #fff3e6;         /* Laranja suave para fundos, seleções e destaques */
-  --abb: #fed7aa;        /* Borda laranja suave */
-  
-  /* Badges & Indicadores de Estado */
-  --ok: #fe8100;         /* Estados concluídos ou normais alinhados à identidade */
-  --okb: #fff3e6;
-  --wa: #ea580c;         /* Atenção em tom quente alinhado ao laranja */
+  /* ==========================================================================
+     Backgrounds & Superfícies (Identidade Oficial LECASU)
+     ========================================================================== */
+  --bg-app: #f4f6f9;              /* Fundo geral da aplicação */
+  --bg-surface-1: #ffffff;        /* Cards, tabelas, containers e painéis */
+  --bg-surface-2: #f8fafc;        /* Inputs, subcards, painéis secundários */
+  --bg-surface-hover: #f1f5f9;    /* Estados de hover em tabelas e listas */
+
+  /* Aliases para compatibilidade total com o código existente */
+  --bg: var(--bg-app);
+  --cd: var(--bg-surface-1);
+
+  /* ==========================================================================
+     Bordas & Linhas Divisórias
+     ========================================================================== */
+  --border-subtle: #e2e8f0;       /* Divisórias padrão e tabelas */
+  --border-medium: #cbd5e1;       /* Bordas de maior contraste em controlos */
+  --border-glow: rgba(254, 129, 0, 0.35); /* Borda de destaque / foco laranja */
+  --bd: var(--border-subtle);
+
+  /* ==========================================================================
+     Tipografia & Contraste
+     ========================================================================== */
+  --text-primary: #18202f;        /* Preto Grafite de alto contraste */
+  --text-secondary: #475569;      /* Textos complementares e rótulos */
+  --text-muted: #64748b;          /* Textos atenuados, legendas e notas */
+  --text-inverse: #ffffff;        /* Texto branco sobre botões/cabeçalhos */
+  --tx: var(--text-primary);
+  --mu: var(--text-muted);
+
+  /* ==========================================================================
+     Cores de Marca & Acentos Oficiais LECASU
+     ========================================================================== */
+  --accent-primary: #fe8100;        /* Laranja Oficial LECASU (Energia & Engenharia) */
+  --accent-primary-hover: #e57400;  /* Laranja escuro para hover/clique */
+  --accent-glow: #fe8100;
+  --accent-gradient: linear-gradient(135deg, #fe8100 0%, #ff9f38 100%);
+  --accent-subtle: #fff3e6;         /* Laranja suave para fundos e seleções */
+  --accent-subtle-border: #fed7aa;  /* Borda laranja suave */
+  --ac: var(--accent-primary);
+  --ach: var(--accent-primary-hover);
+  --ab: var(--accent-subtle);
+  --abb: var(--accent-subtle-border);
+
+  /* ==========================================================================
+     Feedback & Status
+     ========================================================================== */
+  --feedback-success: #12b76a;
+  --feedback-success-bg: #ecfdf3;
+  --feedback-warning: #f79009;
+  --feedback-warning-bg: #fffaeb;
+  --feedback-danger: #b42318;       /* Vermelho Restrito LECASU */
+  --feedback-danger-bg: #fde7e4;
+  --feedback-info: #0ba5ec;
+  --feedback-info-bg: #f0f9ff;
+
+  --ok: var(--accent-primary);
+  --okb: var(--accent-subtle);
+  --wa: var(--feedback-warning);
   --wab: #ffedd5;
-  
-  /* Vermelho Exclusivo para Eliminar / Ações Perigosas / Erros Críticos */
-  --er: #b42318;
-  --erb: #fde7e4;
-  
-  /* Informativos e Tags */
+  --er: var(--feedback-danger);
+  --erb: var(--feedback-danger-bg);
   --in: #334155;
   --inb: #f1f5f9;
+
+  /* ==========================================================================
+     Espaçamento & Grid (Escala Base 4px / 8px do idv.md)
+     ========================================================================== */
+  --space-1: 0.25rem;   /* 4px  - Micro espaçamento, tags */
+  --space-2: 0.5rem;    /* 8px  - Gaps internos de botões e ícones */
+  --space-3: 0.75rem;   /* 12px - Padding de inputs e badges */
+  --space-4: 1rem;      /* 16px - Padding de cartões compactos e KPIs */
+  --space-5: 1.25rem;   /* 20px - Gaps médios e padding de containers */
+  --space-6: 1.5rem;    /* 24px - Padding de containers e modais */
+  --space-8: 2rem;      /* 32px - Gaps entre grupos de blocos e páginas */
+  --space-10: 2.5rem;   /* 40px - Separação vertical moderada */
+  --space-12: 3rem;     /* 48px - Margem entre seções secundárias */
+  --space-16: 4rem;     /* 64px - Margem entre seções principais */
+
+  /* ==========================================================================
+     Raios de Borda (Border Radius do idv.md)
+     ========================================================================== */
+  --radius-xs: 4px;     /* Tags diminutas, tooltips */
+  --radius-sm: 6px;     /* Badges, caixas de seleção, botões pequenos */
+  --radius-md: 10px;    /* Inputs, dropdowns, botões regulares */
+  --radius-lg: 16px;    /* Cards padrão, tabelas, containers */
+  --radius-xl: 24px;    /* Modais, cards hero, caixas de diálogo */
+  --radius-full: 9999px;/* Pílulas, chips e botões arredondados */
+
+  /* ==========================================================================
+     Sombras & Iluminação (Elevation & Glow para Sistema Administrativo)
+     ========================================================================== */
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
+  --shadow-md: 0 4px 14px rgba(15, 23, 42, 0.08);
+  --shadow-lg: 0 12px 32px rgba(15, 23, 42, 0.14);
+  --glow-button: 0 2px 10px rgba(254, 129, 0, 0.28);
+  --glow-card: 0 4px 20px rgba(254, 129, 0, 0.08);
+  --glow-ambient: 0 8px 30px rgba(254, 129, 0, 0.05);
+
+  /* ==========================================================================
+     Tipografia (Font Families & Sizes do idv.md adaptado para ERP)
+     ========================================================================== */
+  --font-family-base: "Plus Jakarta Sans", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-family-mono: "JetBrains Mono", "Fira Code", monospace;
+
+  --text-display: 2.25rem;    /* 36px - Valores numéricos de destaque do topo */
+  --text-h1: 1.75rem;         /* 28px - Título de página ou módulo mestre */
+  --text-h2: 1.35rem;         /* 22px - Cabeçalho de seções e subdivisões */
+  --text-h3: 1.15rem;         /* 18px - Títulos de cartões, modais e agrupamentos */
+  --text-body: 0.9375rem;     /* 15px - Texto corrido, notas e parágrafos */
+  --text-body-sm: 0.84375rem; /* 13.5px - Tabelas, inputs, formulários, navegação */
+  --text-caption: 0.75rem;    /* 12px - Badges, tags de estado, legendas */
+
+  --leading-tight: 1.15;
+  --leading-snug: 1.25;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.625;
+
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+  --weight-extrabold: 800;
+
   color-scheme: light;
   box-sizing: border-box;
 }
@@ -47,11 +148,20 @@ html {
 body {
   margin: 0;
   min-height: 100%;
-  background: var(--bg);
-  color: var(--tx);
-  font: 14px/1.45 "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  background: var(--bg-app);
+  color: var(--text-primary);
+  font-family: var(--font-family-base);
+  font-size: var(--text-body-sm);
+  line-height: var(--leading-normal);
+  font-weight: var(--weight-regular);
   overflow-y: auto;
   overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+code, kbd, samp, pre {
+  font-family: var(--font-family-mono);
 }
 
 /* Diálogos modais nativos quando fechados nunca ocupam espaço no fluxo */
@@ -591,39 +701,41 @@ aside.collapsed .sbf #rst {
 }
 
 h2 {
-  font-size: 15px;
-  font-weight: 700;
-  margin: 24px 0 10px;
-  color: var(--tx);
+  font-size: var(--text-h2);
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-snug);
+  margin: var(--space-6) 0 var(--space-2);
+  color: var(--text-primary);
 }
 
 h3 {
-  font-size: 14px;
-  font-weight: 600;
-  margin: 0 0 10px;
-  color: var(--tx);
+  font-size: var(--text-h3);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-snug);
+  margin: 0 0 var(--space-2);
+  color: var(--text-primary);
 }
 
 .bar {
   display: flex;
-  gap: 12px;
+  gap: var(--space-3);
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  margin: 10px 0 16px;
+  margin: var(--space-2) 0 var(--space-4);
   width: 100%;
 }
 
 .filters-wrap {
   display: flex;
-  gap: 6px;
+  gap: var(--space-2);
   align-items: center;
   flex-wrap: wrap;
 }
 
 .bar-search-actions {
   display: flex;
-  gap: 8px;
+  gap: var(--space-2);
   align-items: center;
   margin-left: auto;
   flex-shrink: 0;
@@ -639,44 +751,47 @@ h3 {
 .kpis {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 12px;
-  margin-top: 4px;
-  margin-bottom: 16px;
+  gap: var(--space-3);
+  margin-top: var(--space-1);
+  margin-bottom: var(--space-4);
 }
 
 .k,
 .cd,
-.sc {
-  background: var(--cd);
-  border: 1px solid var(--bd);
-  border-radius: 14px;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+.sc,
+.card {
+  background: var(--bg-surface-1);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
 }
 
 .k {
-  padding: 14px 16px;
-  border-top: 3px solid var(--ac);
+  padding: var(--space-4);
+  border-top: 3px solid var(--accent-primary);
 }
 
 .k span {
   display: block;
-  color: var(--mu);
-  font-size: 12px;
-  font-weight: 600;
+  color: var(--text-muted);
+  font-size: var(--text-caption);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.02em;
 }
 
 .k b {
   display: block;
-  font-size: 21px;
+  font-size: var(--text-h2);
   margin-top: 2px;
-  font-weight: 700;
+  font-weight: var(--weight-extrabold);
   font-variant-numeric: tabular-nums;
-  color: var(--tx);
+  color: var(--text-primary);
+  line-height: var(--leading-tight);
 }
 
 .k small {
-  color: var(--mu);
-  font-size: 12px;
+  color: var(--text-muted);
+  font-size: var(--text-caption);
 }
 
 .k.ok { border-top-color: var(--ok); }
@@ -685,14 +800,22 @@ h3 {
 .k.in { border-top-color: var(--in); }
 
 .cd {
-  padding: 16px 18px;
+  padding: var(--space-5) var(--space-6);
+}
+
+.card-highlight {
+  background: var(--bg-surface-1);
+  border: 1px solid var(--border-glow);
+  border-radius: var(--radius-xl);
+  padding: var(--space-6);
+  box-shadow: var(--glow-card);
 }
 
 .grid2 {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
-  gap: 14px;
-  margin-top: 14px;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
 }
 
 /* Barras de Progresso e Distribuição */
@@ -736,13 +859,13 @@ h3 {
 }
 
 /* ==========================================================================
-   Tabelas com Linhas Verticais e Horizontais Obrigatórias
+   Tabelas com Linhas Verticais e Horizontais Obrigatórias (Conforme idv.md)
    ========================================================================== */
 .sc {
   overflow-x: auto;
-  border: 1px solid var(--bd);
-  border-radius: 12px;
-  background: var(--cd);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--bg-surface-1);
 }
 
 table {
@@ -752,11 +875,11 @@ table {
 
 th,
 td {
-  padding: 8px 11px;
-  border-bottom: 1px solid var(--bd);
-  border-right: 1px solid var(--bd); /* LINHAS VERTICAIS MANDATÓRIAS */
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--border-subtle);
+  border-right: 1px solid var(--border-subtle); /* LINHAS VERTICAIS MANDATÓRIAS */
   text-align: left;
-  vertical-align: top;
+  vertical-align: middle;
   white-space: nowrap;
 }
 
@@ -772,15 +895,16 @@ tr:last-child td {
 }
 
 th {
-  font-size: 11.5px;
-  letter-spacing: 0.25px;
-  color: #ffffff;
-  background: var(--ac); /* Cor oficial da LECASU no header das tabelas */
+  font-family: var(--font-family-base);
+  font-size: var(--text-caption);
+  letter-spacing: 0.03em;
+  color: var(--text-inverse);
+  background: var(--accent-primary); /* Cor oficial da LECASU no header das tabelas */
   text-transform: uppercase;
-  font-weight: 700;
-  border-bottom: 2px solid #e57400;
+  font-weight: var(--weight-bold);
+  border-bottom: 2px solid var(--accent-primary-hover);
   border-right: 1px solid #ff9d33;
-  padding: 10px 12px;
+  padding: var(--space-2) var(--space-3);
 }
 
 .sc th {
@@ -802,6 +926,7 @@ td.n,
 th.n {
   text-align: right;
   font-variant-numeric: tabular-nums;
+  font-family: var(--font-family-mono);
 }
 
 /* Coluna de Ações Fixa na Rolagem Horizontal */
@@ -980,108 +1105,149 @@ small {
 }
 
 /* ==========================================================================
-   Badges / Etiquetas de Estado
+   Badges / Etiquetas de Estado (Conforme idv.md)
    ========================================================================== */
-.b {
-  display: inline-block;
-  padding: 1px 9px;
-  border-radius: 99px;
-  font-size: 12px;
-  font-weight: 600;
+.b,
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-caption);
+  font-weight: var(--weight-bold);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  line-height: 1;
 }
 
-.b.ok { background: var(--okb); color: var(--ok); }
-.b.wa { background: var(--wab); color: var(--wa); }
-.b.er { background: var(--erb); color: var(--er); }
-.b.in { background: var(--inb); color: var(--in); }
+.b.ok, .badge.ok { background: var(--accent-subtle); color: var(--accent-primary); border: 1px solid var(--accent-subtle-border); }
+.b.wa, .badge.wa { background: var(--wab); color: var(--feedback-warning); border: 1px solid #fed7aa; }
+.b.er, .badge.er { background: var(--feedback-danger-bg); color: var(--feedback-danger); border: 1px solid #fecdd3; }
+.b.in, .badge.in { background: var(--bg-surface-2); color: var(--in); border: 1px solid var(--border-subtle); }
 
 /* ==========================================================================
-   Controlos de Formulário, Inputs e Placeholders Obrigatórios
+   Controlos de Formulário, Inputs e Placeholders Obrigatórios (Conforme idv.md)
    ========================================================================== */
 button,
 select,
-input {
-  font: inherit;
-  color: var(--tx);
+input,
+textarea {
+  font-family: var(--font-family-base);
+  color: var(--text-primary);
 }
 
-button.p {
-  border: 1px solid var(--ac);
-  background: var(--ac);
-  color: #ffffff;
-  font-weight: 600;
-  border-radius: 9px;
-  padding: 7px 13px;
+button.p,
+.btn-primary {
+  border: 1px solid var(--accent-primary);
+  background: var(--accent-gradient);
+  color: var(--text-inverse);
+  font-family: var(--font-family-base);
+  font-size: var(--text-body-sm);
+  font-weight: var(--weight-bold);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-4);
   cursor: pointer;
-  transition: filter 0.15s, background 0.15s;
+  box-shadow: var(--glow-button);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  transition: filter 0.15s ease, background-color 0.15s ease;
 }
 
-button.p:hover {
+button.p:hover,
+.btn-primary:hover {
+  filter: brightness(1.05);
+}
+
+button.p:active,
+.btn-primary:active {
   filter: brightness(0.95);
 }
 
 td.ac button,
-.bar button:not(.p) {
-  border: 1px solid var(--bd);
-  background: #ffffff;
-  border-radius: 7px;
-  padding: 4px 10px;
+.bar button:not(.p),
+.btn-sec,
+.btn-secondary {
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface-1);
+  color: var(--text-primary);
+  font-family: var(--font-family-base);
+  font-size: var(--text-body-sm);
+  font-weight: var(--weight-semibold);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
   cursor: pointer;
-  transition: background 0.15s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
 td.ac button:hover,
-.bar button:not(.p):hover {
-  background: var(--bg);
+.bar button:not(.p):hover,
+.btn-sec:hover,
+.btn-secondary:hover {
+  background: var(--bg-surface-hover);
+  border-color: var(--border-medium);
 }
 
 button.dg {
-  color: var(--er);
+  color: var(--feedback-danger);
 }
-
 
 input,
-select {
-  background: #ffffff;
-  border: 1px solid var(--bd);
-  border-radius: 8px;
-  padding: 7px 9px;
+select,
+textarea,
+.input-field {
+  background: var(--bg-surface-1);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
   width: 100%;
-  font-size: 14px;
+  font-family: var(--font-family-base);
+  font-size: var(--text-body-sm);
+  color: var(--text-primary);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-input::placeholder {
-  color: #9aa2b1;
+input::placeholder,
+textarea::placeholder {
+  color: var(--text-muted);
   opacity: 1;
-  font-size: 13px;
+  font-size: var(--text-body-sm);
 }
 
 input:focus,
-select:focus {
-  outline: 2px solid var(--ab);
-  border-color: var(--ac);
+select:focus,
+textarea:focus,
+.input-field:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px rgba(254, 129, 0, 0.18);
 }
 
 .bar input,
 .bar select {
   width: auto;
-  height: 36px;
+  height: 38px;
   box-sizing: border-box;
 }
 
 .bar button.p {
-  height: 36px;
+  height: 38px;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2);
   box-sizing: border-box;
-  font-size: 13px;
-  font-weight: 600;
-  padding: 0 16px;
+  font-size: var(--text-body-sm);
+  font-weight: var(--weight-bold);
+  padding: 0 var(--space-4);
 }
 
 .filters-wrap .btn-sec {
-  height: 36px;
+  height: 38px;
   display: inline-flex;
   align-items: center;
   box-sizing: border-box;
@@ -1092,21 +1258,21 @@ td input.money-input {
   width: 175px;
   text-align: right;
   font-variant-numeric: tabular-nums;
-  font-weight: 600;
-  padding: 6px 10px;
+  font-weight: var(--weight-semibold);
+  padding: var(--space-2) var(--space-3);
 }
 
 /* ==========================================================================
-   Diálogo Modal (Formulários CRUD)
+   Diálogo Modal (Formulários CRUD - Conforme idv.md)
    ========================================================================== */
 dialog {
-  border: 1px solid var(--bd);
-  border-radius: 16px;
-  background: #ffffff;
-  color: var(--tx);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  background: var(--bg-surface-1);
+  color: var(--text-primary);
   width: min(640px, 94vw);
-  padding: 20px;
-  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.2);
+  padding: var(--space-6);
+  box-shadow: var(--shadow-lg);
 }
 
 dialog::backdrop {
@@ -1117,13 +1283,13 @@ dialog::backdrop {
 .fg {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .fg label {
-  font-size: 12px;
-  color: var(--mu);
-  font-weight: 600;
+  font-size: var(--text-caption);
+  color: var(--text-muted);
+  font-weight: var(--weight-semibold);
 }
 
 .fg .full {
@@ -1131,30 +1297,31 @@ dialog::backdrop {
 }
 
 .fg label input,
-.fg label select {
-  margin-top: 4px;
-  font-size: 14px;
-  font-weight: 400;
+.fg label select,
+.fg label textarea {
+  margin-top: var(--space-1);
+  font-size: var(--text-body-sm);
+  font-weight: var(--weight-regular);
 }
 
 .ft {
   display: flex;
-  gap: 8px;
+  gap: var(--space-2);
   justify-content: flex-end;
-  margin-top: 18px;
+  margin-top: var(--space-5);
 }
 
 .ft button:not(.p) {
-  border: 1px solid var(--bd);
-  background: #ffffff;
-  border-radius: 9px;
-  padding: 7px 13px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface-1);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-4);
   cursor: pointer;
-  transition: background 0.15s;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
 }
 
 .ft button:not(.p):hover {
-  background: var(--bg);
+  background: var(--bg-surface-hover);
 }
 
 /* Notificação Toast */
@@ -1163,136 +1330,143 @@ dialog::backdrop {
   left: 50%;
   bottom: 0;
   transform: translateX(-50%);
-  margin-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
-  background: #18202f;
-  color: #ffffff;
-  padding: 9px 16px;
-  border-radius: 9px;
+  margin-bottom: calc(var(--space-4) + env(safe-area-inset-bottom, 0px));
+  background: var(--text-primary);
+  color: var(--text-inverse);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-md);
   display: none;
   z-index: 100;
-  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
-  font-size: 13px;
-  font-weight: 500;
+  box-shadow: var(--shadow-md);
+  font-size: var(--text-body-sm);
+  font-weight: var(--weight-medium);
 }
 
 .note {
-  color: var(--mu);
-  font-size: 12px;
+  color: var(--text-muted);
+  font-size: var(--text-caption);
 }
 
 
 /* ==========================================================================
-   Botões Globais e Ações
+   Botões Globais e Ações (Conforme idv.md)
    ========================================================================== */
-.btn-sec {
-  border: 1px solid var(--bd);
-  background: #ffffff;
-  border-radius: 8px;
-  padding: 6px 12px;
-  font-size: 13px;
+.btn-sec,
+.btn-secondary {
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface-1);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
+  font-family: var(--font-family-base);
+  font-size: var(--text-body-sm);
   cursor: pointer;
-  font-weight: 600;
-  color: var(--tx);
+  font-weight: var(--weight-semibold);
+  color: var(--text-primary);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: var(--space-2);
   transition: background-color 0.1s ease, color 0.1s ease, border-color 0.1s ease;
-  line-height: 1.3;
+  line-height: var(--leading-snug);
   text-decoration: none;
 }
 
-.btn-sec:hover {
-  background: var(--bg);
-  border-color: #cbd5e1;
-  color: var(--tx);
+.btn-sec:hover,
+.btn-secondary:hover {
+  background: var(--bg-surface-hover);
+  border-color: var(--border-medium);
+  color: var(--text-primary);
 }
 
-.btn-sec.on {
-  background: var(--ab);
-  color: var(--ac);
-  border-color: var(--ac);
-  font-weight: 600;
+.btn-sec.on,
+.btn-secondary.on {
+  background: var(--accent-subtle);
+  color: var(--accent-primary);
+  border-color: var(--accent-primary);
+  font-weight: var(--weight-semibold);
 }
 
 /* Botões Pequenos de Ações em Tabelas */
 .btn-sm {
-  padding: 5px 10px;
-  font-size: 12px;
-  font-weight: 500;
-  border-radius: 6px;
-  border: 1px solid var(--bd);
-  background: #ffffff;
-  color: var(--tx);
+  padding: var(--space-1) var(--space-2);
+  font-family: var(--font-family-base);
+  font-size: var(--text-caption);
+  font-weight: var(--weight-medium);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface-1);
+  color: var(--text-primary);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: var(--space-1);
   transition: background-color 0.1s ease, color 0.1s ease, border-color 0.1s ease;
   line-height: 1;
 }
 
 .btn-sm:hover {
-  background: var(--bg);
-  border-color: #cbd5e1;
+  background: var(--bg-surface-hover);
+  border-color: var(--border-medium);
 }
 
-/* Botões de Eliminar (Vermelho Mandatório) */
+/* Botões de Eliminar (Vermelho Mandatório LECASU) */
 .btn-sm.del,
 .btn-danger,
 button.del {
-  color: #b42318 !important;
-  background: #fde7e4 !important;
+  color: var(--feedback-danger) !important;
+  background: var(--feedback-danger-bg) !important;
   border: 1px solid #fecdd3 !important;
-  font-weight: 600 !important;
+  font-weight: var(--weight-bold) !important;
+  border-radius: var(--radius-sm);
 }
 
 .btn-sm.del:hover,
 .btn-danger:hover,
 button.del:hover {
-  background: #b42318 !important;
-  color: #ffffff !important;
+  background: var(--feedback-danger) !important;
+  color: var(--text-inverse) !important;
   border-color: #991b1b !important;
 }
 
 /* Modal de Confirmação de Ações */
 #dlg-confirm {
   width: min(440px, 92vw);
-  border-radius: 16px;
-  padding: 22px;
-  border: 1px solid var(--bd);
-  background: #ffffff;
+  border-radius: var(--radius-xl);
+  padding: var(--space-6);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface-1);
+  box-shadow: var(--shadow-lg);
 }
 
 .confirm-box {
   display: flex;
-  gap: 16px;
+  gap: var(--space-4);
   align-items: flex-start;
 }
 
 .confirm-icon {
   width: 44px;
   height: 44px;
-  border-radius: 12px;
-  background: #fde7e4;
-  color: #b42318;
+  border-radius: var(--radius-md);
+  background: var(--feedback-danger-bg);
+  color: var(--feedback-danger);
   display: grid;
   place-items: center;
   flex-shrink: 0;
 }
 
 .confirm-body h3 {
-  margin: 0 0 6px;
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--tx);
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-h3);
+  font-weight: var(--weight-bold);
+  color: var(--text-primary);
 }
 
 .confirm-body p {
   margin: 0;
-  font-size: 13px;
-  color: var(--mu);
-  line-height: 1.45;
+  font-size: var(--text-body-sm);
+  color: var(--text-muted);
+  line-height: var(--leading-normal);
 }
 
 .weather-svg {
