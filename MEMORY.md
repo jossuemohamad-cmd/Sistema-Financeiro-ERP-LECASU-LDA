@@ -232,6 +232,11 @@ As regras abaixo resultam de correções diretas feitas pelo utilizador e são *
 * **Ações Sempre Alinhadas:** O botão de inserção (`+ Nova conta`, `+ Novo Bem / Ativo`, `+ Novo Material / Produto`, etc.) e o campo de pesquisa (`#q`) nunca quebram para uma segunda linha; eles permanecem sempre lado a lado na mesma linha horizontal.
 * **Rolagem Horizontal Fluida nos Filtros:** Quando houver muitas categorias (ex: Ativos e Inventários), `.filters-wrap` utiliza `flex: 1; min-width: 0; overflow-x: auto; scrollbar-width: none; white-space: nowrap`, mantendo os botões de categoria à esquerda e a barra de pesquisa + botão de ação fixos à direita na mesma linha.
 
+### AB. Ocupação Inteligente de Espaços Vazios em Barras de Ações
+* **Recursos Humanos (`rh.html`):** O espaço vazio à esquerda da barra agora possui filtros contextuais por Departamento (`Todos`, `Engenharia Solar`, `Administração & Finanças`, `Operações`, etc.), permitindo segmentar colaboradores em tempo real.
+* **Configurações (`configuracoes.html`):** O espaço vazio da barra agora conta com botões de navegação rápida com ícones SVG para as 4 seções principais (`Empresa & Contactos`, `Fiscal & Moçambique`, `PostgreSQL Neon`, `Segurança & Backup`), com rolagem suave automática e realce em borda laranja.
+* **Financeiro (`financeiro.html`):** As abas de *Reconciliação Bancária* e *Terceiros* agora dispõem do campo de pesquisa `#q` reativo integrado, eliminando lacunas e tornando todas as tabelas pesquisáveis.
+
 ---
 
 ## 3. Estrutura Modular do Projeto e Persistência
