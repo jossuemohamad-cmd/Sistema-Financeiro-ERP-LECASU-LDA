@@ -1,7 +1,7 @@
 ---
 deployment:
   tasks:
-    - export DEPLOYPATH=/home/mwxntafa/erp.lecasu.co.mz/
+    - export DEPLOYPATH=/home/mwxntafa/public_html/erp.lecasu.co.mz/
     - /bin/mkdir -p $DEPLOYPATH
     - /bin/cp -R assets $DEPLOYPATH
     - /bin/cp -R css $DEPLOYPATH
@@ -12,28 +12,4 @@ deployment:
     - /bin/cp package.json $DEPLOYPATH
     - /bin/cp manifest.webmanifest $DEPLOYPATH
     - /bin/cp sw.js $DEPLOYPATH
-    - /bin/cp .htaccess $DEPLOYPATH 2>/dev/null || true
-    - export ALTDEPLOYPATH=/home/mwxntafa/public_html/erp/
-    - /bin/mkdir -p $ALTDEPLOYPATH
-    - /bin/cp -R assets $ALTDEPLOYPATH
-    - /bin/cp -R css $ALTDEPLOYPATH
-    - /bin/cp -R js $ALTDEPLOYPATH
-    - /bin/cp -R db $ALTDEPLOYPATH
-    - /bin/cp *.html $ALTDEPLOYPATH
-    - /bin/cp *.js $ALTDEPLOYPATH
-    - /bin/cp package.json $ALTDEPLOYPATH
-    - /bin/cp manifest.webmanifest $ALTDEPLOYPATH
-    - /bin/cp sw.js $ALTDEPLOYPATH
-    - /bin/cp .htaccess $ALTDEPLOYPATH 2>/dev/null || true
-    - export ALTDEPLOYPATH2=/home/mwxntafa/public_html/erp.lecasu.co.mz/
-    - /bin/mkdir -p $ALTDEPLOYPATH2
-    - /bin/cp -R assets $ALTDEPLOYPATH2
-    - /bin/cp -R css $ALTDEPLOYPATH2
-    - /bin/cp -R js $ALTDEPLOYPATH2
-    - /bin/cp -R db $ALTDEPLOYPATH2
-    - /bin/cp *.html $ALTDEPLOYPATH2
-    - /bin/cp *.js $ALTDEPLOYPATH2
-    - /bin/cp package.json $ALTDEPLOYPATH2
-    - /bin/cp manifest.webmanifest $ALTDEPLOYPATH2
-    - /bin/cp sw.js $ALTDEPLOYPATH2
-    - /bin/cp .htaccess $ALTDEPLOYPATH2 2>/dev/null || true
+    - /bin/cp .htaccess $DEPLOYPATH
