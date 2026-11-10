@@ -433,10 +433,7 @@ function recTab(R) {
         </div>
       `).join("")}
     </div>
-    <div class="bar">
-      <span class="sp"></span>
-      <button class="p" data-a="new" data-k="mov">+ Novo movimento</button>
-    </div>
+
     ${sc(head(MH, ["Entrada (MZN)", "Saída (MZN)", "Saldo (MZN)"]) + R.book.map(x => mrow(x, 1)).join("") + `<tr class="t"><td></td><td>Total do mês</td><td></td><td class="n">${m(R.tin)}</td><td class="n">${m(R.tout)}</td><td class="n">${m(R.contab)}</td><td colspan="9"></td><td class="col-actions ac"></td></tr>`)}
     <h2>Movimentos no extracto ainda não registados na contabilidade (a lançar no ERP)</h2>
     ${sc(head(MH, ["Entrada (MZN)", "Saída (MZN)", "Saldo (MZN)"]) + (R.ex.map(x => mrow(x, 0)).join("") || '<tr><td colspan="16"><small>Sem movimentos.</small></td></tr>'))}
@@ -531,11 +528,7 @@ function invTab(k, L) {
   const N = ["Valor s/ IVA (MZN)", "IVA (MZN)", "Total (MZN)", H[11], "Saldo em aberto (MZN)", "Dias em atraso"];
 
   return `
-    <div class="bar">
-      <span class="sp"></span>
-      <label>Data de referência <input type="date" data-f="ref" value="${S.ref}"></label>
-      <button class="p" data-a="new" data-k="${k}">+ Nova factura</button>
-    </div>
+
     ${sc(head(H, N) + L.map(x => {
       const t = T(x.terc) || {};
       return `<tr><td>${esc(x.no)}</td><td>${d(x.date)}</td><td>${esc(x.terc)}</td><td>${esc(t.nome)}</td><td>${esc(t.nuit)}</td><td>${esc(x.conta)}</td><td class="w">${esc(x.desc)}</td><td class="n">${m(x.base)}</td><td class="n">${Math.round(x.rate * 100)}%</td><td class="n">${m(x.iva)}</td><td class="n">${m(x.tot)}</td><td class="n">${m(x.pd)}</td><td class="n">${m(x.sal)}</td><td>${d(x.due)}</td><td class="n">${x.dias}</td><td>${badge(x.st)}</td>${btns(k, x.id)}</tr>`;
@@ -548,10 +541,7 @@ function invTab(k, L) {
 // Views de Conteúdo: Terceiros
 function terTab() {
   return `
-    <div class="bar">
-      <span class="sp"></span>
-      <button class="p" data-a="new" data-k="ter">+ Novo terceiro</button>
-    </div>
+
     ${sc(head(["Código", "Nome / Designação", "Tipo", "NUIT", "Conta por defeito", "Província", ""]) + S.ter.map(t => `<tr><td>${esc(t.cod)}</td><td>${esc(t.nome)}</td><td>${esc(t.tipo)}</td><td>${esc(t.nuit)}</td><td>${esc(t.conta)}</td><td>${esc(t.prov)}</td>${btns("ter", t.id)}</tr>`).join(""))}
   `;
 }
@@ -562,11 +552,7 @@ function pcTab() {
   const f = searchQ.toLowerCase();
   const L = S.pc.filter(p => !f || (p.cod + " " + p.des).toLowerCase().includes(f));
   return `
-    <div class="bar">
-      <span class="sp"></span>
-      <input id="q" placeholder="Pesquisar por código ou designação..." value="${esc(searchQ)}">
-      <button class="p" data-a="new" data-k="pc">+ Nova conta</button>
-    </div>
+
     ${sc(head(["Código", "Designação", "Nível", "Tipo", "Origem", ""]) + L.map(p => `<tr><td>${esc(p.cod)}</td><td>${esc(p.des)}</td><td>${esc(p.niv)}</td><td>${esc(p.tipo)}</td><td>${esc(p.orig)}</td>${btns("pc", p.id)}</tr>`).join(""))}
   `;
 }
@@ -1873,7 +1859,14 @@ function renderCurrentPage() {
     const mainEl = $("#main");
     if (!mainEl) return;
 
+    const tabsRowEl = $("#tabs-bar-row");
     const tabsEl = $("#tabs");
+    const tabsActionsEl = $("#tabs-actions");
+
+    if (tabsRowEl) {
+      tabsRowEl.style.display = (currentPage === "fin") ? "flex" : "none";
+    }
+
     if (tabsEl) {
       if (currentPage === "fin") {
         tabsEl.style.display = "flex";
@@ -1887,6 +1880,33 @@ function renderCurrentPage() {
         }
       } else {
         tabsEl.style.display = "none";
+      }
+    }
+
+    if (tabsActionsEl) {
+      if (currentPage === "fin") {
+        tabsActionsEl.style.display = "flex";
+        if (activeTab === "rec") {
+          tabsActionsEl.innerHTML = `<button class="p" data-a="new" data-k="mov">+ Novo movimento</button>`;
+        } else if (activeTab === "ar" || activeTab === "ap") {
+          tabsActionsEl.innerHTML = `
+            <label class="tab-action-label">
+              Data de referência
+              <input type="date" data-f="ref" value="${esc(S.ref || '')}">
+            </label>
+            <button class="p" data-a="new" data-k="${activeTab}">+ Nova factura</button>
+          `;
+        } else if (activeTab === "ter") {
+          tabsActionsEl.innerHTML = `<button class="p" data-a="new" data-k="ter">+ Novo terceiro</button>`;
+        } else if (activeTab === "pc") {
+          tabsActionsEl.innerHTML = `
+            <input type="search" id="q" placeholder="Pesquisar por código ou designação..." value="${esc(searchQ)}">
+            <button class="p" data-a="new" data-k="pc">+ Nova conta</button>
+          `;
+        }
+      } else {
+        tabsActionsEl.style.display = "none";
+        tabsActionsEl.innerHTML = "";
       }
     }
 

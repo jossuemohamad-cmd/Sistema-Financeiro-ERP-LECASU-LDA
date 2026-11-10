@@ -664,6 +664,66 @@ aside.collapsed .sbf #rst {
   flex: 1;
 }
 
+/* Linha Unificada de Abas e Botões de Ação (Módulo Financeiro) */
+.tabs-bar-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin: 0 0 var(--space-4);
+  flex-wrap: wrap;
+}
+
+.tabs-bar-row .pills {
+  margin: 0;
+}
+
+.tabs-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.tabs-actions .tab-action-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--text-caption);
+  font-weight: 600;
+  color: var(--tx);
+}
+
+.tabs-actions input[type="date"],
+.tabs-actions input[type="search"],
+.tabs-actions input[type="text"] {
+  height: 38px;
+  box-sizing: border-box;
+  padding: 6px 12px;
+  font-size: var(--text-caption);
+  border: 1px solid var(--bd);
+  border-radius: var(--radius-md);
+  background: var(--cd);
+  color: var(--tx);
+  font-family: inherit;
+}
+
+.tabs-actions input[type="search"],
+.tabs-actions input[type="text"] {
+  min-width: 220px;
+}
+
+.tabs-actions button.p {
+  height: 38px;
+  padding: 0 var(--space-4);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--text-caption);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
 /* Abas de Navegação (Pills) */
 .pills {
   display: flex;
