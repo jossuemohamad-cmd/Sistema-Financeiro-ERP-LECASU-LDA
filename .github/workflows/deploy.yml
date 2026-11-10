@@ -21,3 +21,4 @@ jobs:
           else
             echo "Aviso: Webhook retornou status $HTTP_STATUS. Verifique se o deploy.php já está presente no servidor."
           fi
+

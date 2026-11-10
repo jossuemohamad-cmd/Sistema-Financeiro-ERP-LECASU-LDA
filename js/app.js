@@ -868,7 +868,7 @@ function renderClientesFornecedoresView() {
         <button class="btn-sec ${terFilter === "out" ? "on" : ""}" data-filter-ter="out">Estado & Outros (${totalOut})</button>
       </div>
       <div class="bar-search-actions">
-        <input type="search" id="q" placeholder="Pesquisar por nome, código, NUIT, província..." value="${esc(searchQ)}" style="min-width:260px">
+        <input type="search" id="q" placeholder="Pesquisar por nome, código, NUIT, província..." value="${esc(searchQ)}">
         <button class="p" data-a="new" data-k="ter">+ Novo Terceiro</button>
       </div>
     </div>
@@ -939,7 +939,7 @@ function renderMateriaView() {
         ${cats.map(c => `<button class="btn-sec ${materiaCatFilter === c ? "on" : ""}" data-filter-materia="${c}">${c === "all" ? "Todas as Categorias" : c}</button>`).join("")}
       </div>
       <div class="bar-search-actions">
-        <input type="search" id="q" placeholder="Pesquisar por produto, código, fornecedor..." value="${esc(searchQ)}" style="min-width:240px">
+        <input type="search" id="q" placeholder="Pesquisar por produto, código, fornecedor..." value="${esc(searchQ)}">
         <button class="p" data-a="new" data-k="materia">+ Novo Material / Produto</button>
       </div>
     </div>
@@ -1033,7 +1033,7 @@ function renderRHView() {
     <div class="bar">
       <span class="sp"></span>
       <div class="bar-search-actions">
-        <input type="search" id="q" placeholder="Pesquisar por colaborador, cargo, departamento..." value="${esc(searchQ)}" style="min-width:260px">
+        <input type="search" id="q" placeholder="Pesquisar por colaborador, cargo, departamento..." value="${esc(searchQ)}">
         <button class="p" data-a="new" data-k="rh">+ Novo Colaborador</button>
       </div>
     </div>
@@ -1160,7 +1160,7 @@ function renderAtivosView() {
         ${cats.map(c => `<button class="btn-sec ${ativosCatFilter === c ? "on" : ""}" data-filter-ativos="${c}">${c === "all" ? "Todas as Categorias" : c}</button>`).join("")}
       </div>
       <div class="bar-search-actions">
-        <input type="search" id="q" placeholder="Pesquisar por bem, código, marca, responsável..." value="${esc(searchQ)}" style="min-width:260px">
+        <input type="search" id="q" placeholder="Pesquisar por bem, código, marca, responsável..." value="${esc(searchQ)}">
         <button class="p" data-a="new" data-k="ativos">+ Novo Bem / Ativo</button>
       </div>
     </div>
