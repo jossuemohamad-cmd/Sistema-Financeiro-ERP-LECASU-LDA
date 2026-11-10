@@ -994,7 +994,8 @@ function renderRHView() {
   const totalSalBruto = r2(allRH.reduce((a, x) => a + (x.salario || 0), 0));
   const inssPatronal = r2(totalSalBruto * 0.04);
   const mediaSal = totalColab > 0 ? r2(totalSalBruto / totalColab) : 0;
-  const depts = ["all", ...new Set(allRH.map(r => r.dept).filter(Boolean))];
+  const defaultDepts = ["Operações & Campo", "Engenharia & Projectos", "Administração & Finanças", "Comercial & Vendas"];
+  const depts = ["all", ...new Set([...defaultDepts, ...allRH.map(r => r.dept).filter(Boolean)])];
 
   const rows = list.map(c => `
     <tr>
@@ -1188,6 +1189,7 @@ function renderAtivosView() {
         ${cats.map(c => `<button class="btn-sec ${ativosCatFilter === c ? "on" : ""}" data-filter-ativos="${c}">${c === "all" ? "Todas as Categorias" : c}</button>`).join("")}
       </div>
       <div class="bar-search-actions">
+        <span style="font-size:0.82rem;color:var(--mu);align-self:center;margin-right:6px"><b>${list.length}</b> bem(ns)</span>
         <input type="search" id="q" placeholder="Pesquisar por bem, código, marca, responsável..." value="${esc(searchQ)}">
         <button class="p" data-a="new" data-k="ativos">+ Novo Bem / Ativo</button>
       </div>
@@ -1376,7 +1378,11 @@ function renderConfiguracoesView() {
   const totAt = (S.ativos || []).length;
 
   return `
-    <div class="bar" style="justify-content: flex-end;">
+    <div class="bar">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <span style="font-weight:700;color:var(--tx);font-size:0.95rem">Parâmetros & Sistema</span>
+        <span style="color:var(--mu);font-size:0.82rem">• Gestão de dados corporativos, fiscais e persistência cloud</span>
+      </div>
       <div class="bar-search-actions">
         <button class="p" id="save-config">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1921,11 +1927,14 @@ function renderCurrentPage() {
         tabsActionsEl.style.display = "flex";
         if (activeTab === "rec") {
           tabsActionsEl.innerHTML = `
+            <span style="font-size:0.82rem;color:var(--mu);align-self:center;margin-right:6px"><b>${(S.mov || []).length}</b> movimento(s)</span>
             <input type="search" id="q" placeholder="Pesquisar movimento, entidade..." value="${esc(searchQ)}">
             <button class="p" data-a="new" data-k="mov">+ Novo movimento</button>
           `;
         } else if (activeTab === "ar" || activeTab === "ap") {
+          const count = activeTab === "ar" ? (S.ar || []).length : (S.ap || []).length;
           tabsActionsEl.innerHTML = `
+            <span style="font-size:0.82rem;color:var(--mu);align-self:center;margin-right:6px"><b>${count}</b> factura(s)</span>
             <label class="tab-action-label">
               Data de referência
               <input type="date" data-f="ref" value="${esc(S.ref || '')}">
@@ -1934,11 +1943,13 @@ function renderCurrentPage() {
           `;
         } else if (activeTab === "ter") {
           tabsActionsEl.innerHTML = `
+            <span style="font-size:0.82rem;color:var(--mu);align-self:center;margin-right:6px"><b>${(S.ter || []).length}</b> terceiro(s)</span>
             <input type="search" id="q" placeholder="Pesquisar terceiro, NUIT..." value="${esc(searchQ)}">
             <button class="p" data-a="new" data-k="ter">+ Novo terceiro</button>
           `;
         } else if (activeTab === "pc") {
           tabsActionsEl.innerHTML = `
+            <span style="font-size:0.82rem;color:var(--mu);align-self:center;margin-right:6px"><b>${(S.pc || []).length}</b> conta(s)</span>
             <input type="search" id="q" placeholder="Pesquisar por código ou designação..." value="${esc(searchQ)}">
             <button class="p" data-a="new" data-k="pc">+ Nova conta</button>
           `;
