@@ -227,6 +227,11 @@ As regras abaixo resultam de correções diretas feitas pelo utilizador e são *
 * **Fundo de Sistemas Solares:** A tela de login (`login.html`) utiliza a imagem de um parque de painéis solares fotovoltaicos (`assets/login-bg.jpg`), substituindo definitivamente fotos de turbinas eólicas, com overlay escuro equilibrado (`linear-gradient(135deg, rgba(15, 23, 42, 0.60) 0%, rgba(24, 32, 47, 0.75) 100%)`) e iluminação radial Laranja Oficial LECASU `#FE8100`.
 * **Zero Bloqueios no Formulário:** O envio do formulário de login garante acesso imediato para o Administrador e Diretor Geral (`jossuemohamad@gmail.com`, `jossuamohamad@gmail.com`, `admin@lecasu.co.mz`, `financeiro@lecasu.co.mz`), eliminando caixas de erro ou bloqueios por ausência de backend Node.js em hospedagens estáticas Apache/cPanel.
 
+### AA. Prevenção de Quebras de Linha em Barras de Ações e Filtros
+* **Sem Quebra Vertical (`flex-wrap: nowrap`):** Os containers `.tabs-bar-row`, `.tabs-actions`, `.bar` e `.bar-search-actions` têm obrigatoriamente `flex-wrap: nowrap`.
+* **Ações Sempre Alinhadas:** O botão de inserção (`+ Nova conta`, `+ Novo Bem / Ativo`, `+ Novo Material / Produto`, etc.) e o campo de pesquisa (`#q`) nunca quebram para uma segunda linha; eles permanecem sempre lado a lado na mesma linha horizontal.
+* **Rolagem Horizontal Fluida nos Filtros:** Quando houver muitas categorias (ex: Ativos e Inventários), `.filters-wrap` utiliza `flex: 1; min-width: 0; overflow-x: auto; scrollbar-width: none; white-space: nowrap`, mantendo os botões de categoria à esquerda e a barra de pesquisa + botão de ação fixos à direita na mesma linha.
+
 ---
 
 ## 3. Estrutura Modular do Projeto e Persistência
