@@ -30,12 +30,7 @@ $status = 0;
 // 1. Atualizar repositório Git local
 exec("cd {$repoPath} && git fetch origin main 2>&1 && git reset --hard origin/main 2>&1", $output, $status);
 
-// 2. Tentar executar cPanel uapi nativo se disponível
-$uapiOutput = [];
-exec("/usr/local/cpanel/bin/uapi VersionControl deployment deploy repo_key=Sistema-Financeiro-ERP-LECASU-LDA 2>&1", $uapiOutput);
-$output = array_merge($output, $uapiOutput);
-
-// 3. Cópia direta garantida para a pasta do subdomínio
+// 2. Cópia direta garantida para a pasta do subdomínio erp.lecasu.co.mz
 exec("/bin/mkdir -p {$deployPath} 2>&1", $output);
 exec("/bin/cp -R {$repoPath}/assets {$deployPath}/ 2>&1", $output);
 exec("/bin/cp -R {$repoPath}/css {$deployPath}/ 2>&1", $output);
@@ -60,3 +55,4 @@ echo json_encode([
     'timestamp' => date('Y-m-d H:i:s'),
     'log' => $output
 ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+
