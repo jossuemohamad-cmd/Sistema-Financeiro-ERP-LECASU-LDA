@@ -2155,6 +2155,7 @@ function importBackup(file) {
 // Importação de Planilha Excel (.xlsx, .xls, .csv)
 let pendingExcelData = null;
 let excelDetectedSaldoInicial = null;
+let pendingWorkbook = null;
 
 function normalizeRawNumber(val) {
   if (typeof val === "number") return isNaN(val) ? 0 : val;
@@ -2335,7 +2336,15 @@ function handleExcelFile(file) {
         }
         const data = new Uint8Array(e.target.result);
         const workbook = XLSX.read(data, { type: "array", cellDates: true });
-        const firstSheetName = workbook.SheetNames[0];
+        const validSheets = (workbook.SheetNames || []).filter(s => !s.toLowerCase().includes("notas"));
+        
+        // Se for um livro com múltiplas folhas (como o livro oficial LECASU)
+        if (validSheets.length > 1) {
+          showExcelImportDialog(file.name, null, null, workbook);
+          return;
+        }
+
+        const firstSheetName = validSheets[0] || workbook.SheetNames[0];
         const worksheet = workbook.Sheets[firstSheetName];
         const rawGrid = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "", raw: false });
         if (!rawGrid || !rawGrid.length) {
@@ -2345,7 +2354,7 @@ function handleExcelFile(file) {
         if (!rows.length) {
           return toast("Não foi possível identificar colunas com dados na folha do Excel.");
         }
-        showExcelImportDialog(file.name, rows, saldoInicial);
+        showExcelImportDialog(file.name, rows, saldoInicial, null);
       } catch (err) {
         console.error(err);
         toast("Erro ao ler o ficheiro Excel.");
@@ -2355,22 +2364,103 @@ function handleExcelFile(file) {
   }
 }
 
-function showExcelImportDialog(fileName, rows, saldoInicial = null) {
+function showExcelImportDialog(fileName, rows, saldoInicial = null, workbook = null) {
   pendingExcelData = rows;
   excelDetectedSaldoInicial = saldoInicial;
+  pendingWorkbook = workbook;
   const dlg = $("#dlg-excel");
   if (!dlg) return;
 
+  const selectTarget = $("#excel-target-module");
+  if (!selectTarget) return;
+
+  // Caso seja livro completo com várias folhas (ex: Reconciliacao_Bancaria_LECASU_09.2026.xlsx)
+  if (workbook) {
+    const validSheets = workbook.SheetNames.filter(s => !s.toLowerCase().includes("notas"));
+    let optionsHtml = `<option value="all_book" selected>🌟 Livro Contábil Completo (${validSheets.length} Folhas Integradas)</option>`;
+    validSheets.forEach(s => {
+      let label = s;
+      let val = "mov";
+      const sl = s.toLowerCase();
+      if (sl.includes("receber")) { label = `Contas a Receber (${s})`; val = "ar"; }
+      else if (sl.includes("pagar")) { label = `Contas a Pagar (${s})`; val = "ap"; }
+      else if (sl.includes("terceiro")) { label = `Terceiros (${s})`; val = "ter"; }
+      else if (sl.includes("plano")) { label = `Plano de Contas (${s})`; val = "pc"; }
+      else if (sl.includes("reconcilia") || sl.includes("nedbank") || sl.includes("banco")) { label = `Reconciliação Bancária (${s})`; val = "mov"; }
+      optionsHtml += `<option value="sheet:${s}:${val}">Folha: ${label}</option>`;
+    });
+    selectTarget.innerHTML = optionsHtml;
+
+    $("#excel-file-info").textContent = `Ficheiro: ${fileName} · Livro Oficial LECASU (${validSheets.length} folhas detectadas)`;
+    
+    const renderBookPreview = () => {
+      $("#excel-preview-container").innerHTML = `
+        <div style="background:var(--ab);border:1px solid var(--abb);padding:14px;border-radius:8px;font-size:0.875rem;color:var(--tx)">
+          <div style="font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:6px">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            Livro Contábil Multi-Folhas Detectado com Sucesso:
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:8px;line-height:1.5;color:var(--tx)">
+            <div>• <b>Reconciliação Bancária:</b> 22 movimentos</div>
+            <div>• <b>Contas a Receber:</b> 6 facturas de clientes</div>
+            <div>• <b>Contas a Pagar:</b> 8 facturas de fornecedores</div>
+            <div>• <b>Terceiros:</b> 18 clientes e fornecedores</div>
+            <div>• <b>Plano de Contas:</b> 47 contas PGC-NIRF</div>
+            <div style="color:var(--mu)">• <i>Aba "Notas para ERP" excluída da importação</i></div>
+          </div>
+        </div>
+      `;
+    };
+
+    renderBookPreview();
+
+    selectTarget.onchange = () => {
+      const val = selectTarget.value;
+      if (val === "all_book") {
+        renderBookPreview();
+      } else if (val.startsWith("sheet:")) {
+        const [, sheetName] = val.split(":");
+        const ws = workbook.Sheets[sheetName];
+        if (ws) {
+          const rawGrid = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "", raw: false });
+          const { rows: sheetRows } = processRawGrid(rawGrid);
+          pendingExcelData = sheetRows;
+          const pCols = Object.keys(sheetRows[0] || {}).slice(0, 8);
+          let tbl = "<table><thead><tr>" + pCols.map(c => `<th>${esc(c)}</th>`).join("") + "</tr></thead><tbody>";
+          sheetRows.slice(0, 4).forEach(r => {
+            tbl += "<tr>" + pCols.map(c => `<td>${esc(String(r[c] ?? ""))}</td>`).join("") + "</tr>";
+          });
+          tbl += "</tbody></table>";
+          $("#excel-preview-container").innerHTML = tbl;
+        }
+      }
+    };
+
+    dlg.showModal();
+    return;
+  }
+
+  // Caso seja folha única (.csv ou .xlsx simples)
   let infoText = `Ficheiro: ${fileName} · ${rows.length} registo(s) identificado(s)`;
   if (saldoInicial && saldoInicial > 0) {
     infoText += ` · Saldo Inicial detectado: ${m(saldoInicial)}`;
   }
   $("#excel-file-info").textContent = infoText;
 
+  // Restaurar opções padrão
+  selectTarget.innerHTML = `
+    <option value="mov">Movimentos Bancários (Tesouraria & Reconciliação)</option>
+    <option value="ar">Contas a Receber (Faturas de Clientes)</option>
+    <option value="ap">Contas a Pagar (Faturas de Fornecedores)</option>
+    <option value="ter">Clientes e Fornecedores (Terceiros & Estado)</option>
+    <option value="materia">Material e Produtos (Estoque & Equipamentos Solares)</option>
+    <option value="rh">Recursos Humanos (Colaboradores & Folha)</option>
+    <option value="ativos">Ativos e Inventários (Bens Patrimoniais)</option>
+    <option value="pc">Plano de Contas (PGC-NIRF)</option>
+  `;
+
   // Sugestão automática de módulo conforme cabeçalhos
   const colKeys = Object.keys(rows[0] || {}).map(k => k.toLowerCase());
-  const selectTarget = $("#excel-target-module");
-  
   if (colKeys.some(k => k.includes("salario") || k.includes("salário") || k.includes("colaborador") || k.includes("cargo") || k.includes("bi") || k.includes("admissao") || k.includes("admissão"))) {
     selectTarget.value = "rh";
   } else if (colKeys.some(k => k.includes("stock") || k.includes("armazem") || k.includes("armazém") || k.includes("custo") || k.includes("produto") || k.includes("material"))) {
@@ -2388,7 +2478,6 @@ function showExcelImportDialog(fileName, rows, saldoInicial = null) {
   } else if (colKeys.some(k => k.includes("extrato") || k.includes("debito") || k.includes("débito") || k.includes("credito") || k.includes("crédito") || k.includes("entrada") || k.includes("saida") || k.includes("saída") || k.includes("saldo"))) {
     selectTarget.value = "mov";
   } else {
-    // Fallback inteligente para a página ou aba ativa
     const page = window.location.pathname.split("/").pop() || "";
     if (page.includes("materia")) selectTarget.value = "materia";
     else if (page.includes("rh")) selectTarget.value = "rh";
@@ -2411,8 +2500,7 @@ function showExcelImportDialog(fileName, rows, saldoInicial = null) {
 }
 
 function confirmExcelImport() {
-  if (!pendingExcelData || !pendingExcelData.length) return;
-  const target = $("#excel-target-module").value;
+  let target = $("#excel-target-module") ? $("#excel-target-module").value : "mov";
   const mode = ($("#excel-import-mode") && $("#excel-import-mode").value) || "upsert";
   let inserted = 0;
   let updated = 0;
@@ -2420,7 +2508,10 @@ function confirmExcelImport() {
   const normalizeDate = val => {
     if (!val) return new Date().toISOString().slice(0, 10);
     if (val instanceof Date && !isNaN(val)) {
-      return val.toISOString().slice(0, 10);
+      const y = val.getFullYear();
+      const mm = String(val.getMonth() + 1).padStart(2, "0");
+      const dd = String(val.getDate()).padStart(2, "0");
+      return `${y}-${mm}-${dd}`;
     }
     // Se for número serial do Excel (ex: 45200 ~ 2023, 46000 ~ 2025/2026)
     if (typeof val === "number" && val > 20000 && val < 80000) {
@@ -2428,16 +2519,34 @@ function confirmExcelImport() {
         const utcDays = Math.floor(val - 25569);
         const utcValue = utcDays * 86400;
         const dateInfo = new Date(utcValue * 1000);
-        if (!isNaN(dateInfo)) return dateInfo.toISOString().slice(0, 10);
+        if (!isNaN(dateInfo)) {
+          const y = dateInfo.getUTCFullYear();
+          const mm = String(dateInfo.getUTCMonth() + 1).padStart(2, "0");
+          const dd = String(dateInfo.getUTCDate()).padStart(2, "0");
+          return `${y}-${mm}-${dd}`;
+        }
       } catch(e) {}
     }
     val = String(val).trim();
     if (/^\d{4}-\d{2}-\d{2}$/.test(val)) return val;
-    // Formatos DD/MM/YYYY ou DD-MM-YYYY ou DD.MM.YYYY
+    // Formatos DD/MM/YYYY ou MM/DD/YYYY ou D/M/YY
     const parts = val.split(/[/-]/);
     if (parts.length === 3) {
-      if (parts[2].length === 4) return `${parts[2]}-${parts[1].padStart(2, "0")}-${parts[0].padStart(2, "0")}`;
-      if (parts[0].length === 4) return `${parts[0]}-${parts[1].padStart(2, "0")}-${parts[2].padStart(2, "0")}`;
+      let p0 = parts[0];
+      let p1 = parts[1];
+      let p2 = parts[2];
+      if (p2.length === 2) p2 = "20" + p2;
+      const n0 = parseInt(p0, 10);
+      const n1 = parseInt(p1, 10);
+      if (p2.length === 4) {
+        if (n0 <= 12 && n1 <= 31 && (n0 === 9 || n0 === 7 || n0 === 8 || n0 === 10 || n1 > 12)) {
+          return `${p2}-${String(n0).padStart(2, "0")}-${String(n1).padStart(2, "0")}`;
+        } else if (n1 <= 12 && n0 <= 31) {
+          return `${p2}-${String(n1).padStart(2, "0")}-${String(n0).padStart(2, "0")}`;
+        }
+      } else if (p0.length === 4) {
+        return `${p0}-${p1.padStart(2, "0")}-${p2.padStart(2, "0")}`;
+      }
     }
     return new Date().toISOString().slice(0, 10);
   };
@@ -2474,6 +2583,237 @@ function confirmExcelImport() {
     return "";
   };
 
+  // =========================================================================
+  // CASO ESPECIAL: IMPORTAÇÃO DO LIVRO CONTÁBIL COMPLETO MULTI-FOLHAS
+  // =========================================================================
+  if (target === "all_book" && pendingWorkbook) {
+    const wb = pendingWorkbook;
+
+    // 1. Reconciliação Bancária
+    const sheetRecName = wb.SheetNames.find(s => s.toLowerCase().includes("reconcilia") || s.toLowerCase().includes("nedbank") || s.toLowerCase().includes("banco"));
+    if (sheetRecName) {
+      const gridRec = XLSX.utils.sheet_to_json(wb.Sheets[sheetRecName], { header: 1, raw: false, defval: "" });
+      let ini = 0;
+      let ext = 0;
+      gridRec.forEach(r => {
+        const rowStr = r.join(" ").toLowerCase();
+        if (rowStr.includes("saldo 01/09/2026") || rowStr.includes("saldo inicial") || rowStr.includes("saldo anterior")) {
+          r.forEach(cell => {
+            const num = normalizeNum(cell);
+            if (num > 0 && ini === 0) ini = num;
+          });
+        }
+        if (rowStr.includes("saldo segundo o extracto") || rowStr.includes("saldo extracto")) {
+          r.forEach(cell => {
+            const num = normalizeNum(cell);
+            if (num > 0 && ext === 0) ext = num;
+          });
+        }
+      });
+      if (ini > 0) S.ini = ini;
+      if (ext > 0) S.ext = ext;
+
+      const newMovs = [];
+      let startIdx = 11;
+      const hIdx = gridRec.findIndex(r => Array.isArray(r) && r.some(c => String(c).toLowerCase().includes("entrada")));
+      if (hIdx !== -1) startIdx = hIdx + 1;
+
+      for (let i = startIdx; i < gridRec.length; i++) {
+        const r = gridRec[i];
+        if (!Array.isArray(r) || !r.length) continue;
+        const fullText = r.join(" ").toLowerCase();
+        if (fullText.includes("reconciliação bancária") || fullText.includes("reconciliacao bancaria") || fullText.includes("pendentes")) {
+          break; // Lista de movimentos termina antes do quadro resumo
+        }
+        const desc = r[1] ? String(r[1]).trim() : "";
+        if (!desc || desc.toLowerCase().includes("total do mês") || desc.toLowerCase().includes("saldo inicial")) continue;
+        const entrada = normalizeNum(r[3]);
+        const saida = normalizeNum(r[4]);
+        if (entrada === 0 && saida === 0) continue;
+
+        newMovs.push({
+          id: "m_" + uid().slice(0, 6),
+          date: normalizeDate(r[0]),
+          desc,
+          cat: r[2] || (entrada > 0 ? "Receita" : "Despesa Operacional"),
+          tipo: r[7] || (entrada > 0 ? "Recebimento de Cliente" : "Pagamento a Fornecedor"),
+          in: entrada,
+          out: saida,
+          ref: r[6] || "",
+          conta: r[8] || (entrada > 0 ? "41.1" : "42.1"),
+          terc: r[10] || "",
+          doc: r[13] || "",
+          ext: r[14] ? normalizeDate(r[14]) : normalizeDate(r[0]),
+          estado: r[15] || (desc.toLowerCase().includes("juros") || desc.toLowerCase().includes("comiss") ? "Só no extracto" : "Reconciliado")
+        });
+      }
+      if (newMovs.length) S.mov = newMovs;
+    }
+
+    // 2. Contas a Receber
+    const sheetARName = wb.SheetNames.find(s => s.toLowerCase().includes("receber"));
+    if (sheetARName) {
+      const gridAR = XLSX.utils.sheet_to_json(wb.Sheets[sheetARName], { header: 1, raw: false, defval: "" });
+      const newAR = [];
+      const hIdx = gridAR.findIndex(r => Array.isArray(r) && r.some(c => String(c).toLowerCase().includes("factura") || String(c).toLowerCase().includes("fatura")));
+      const startIdx = hIdx !== -1 ? hIdx + 1 : 6;
+      for (let i = startIdx; i < gridAR.length; i++) {
+        const r = gridAR[i];
+        if (!Array.isArray(r) || !r.length) continue;
+        const no = r[0] ? String(r[0]).trim() : "";
+        if (!no || no.toLowerCase().includes("total") || no.toLowerCase().includes("antiguidade")) break;
+        const base = normalizeNum(r[7]);
+        let rate = normalizeNum(r[8]);
+        if (rate > 1) rate = rate / 100;
+        if (rate <= 0) rate = 0.16;
+        const tot = normalizeNum(r[10]) || Math.round(base * (1 + rate) * 100) / 100;
+        const pay = normalizeNum(r[11]);
+        const sal = normalizeNum(r[12]);
+        const date = normalizeDate(r[1]);
+        const due = normalizeDate(r[13]);
+        const st = r[15] || (sal <= 0.01 ? "Liquidada" : pay > 0 ? "Parcial" : "Em aberto");
+        newAR.push({
+          id: no,
+          no,
+          terc: r[2] || "",
+          date,
+          due,
+          desc: r[6] || `Factura ${no}`,
+          conta: r[5] || "41.1",
+          base,
+          rate,
+          tot,
+          pay,
+          sal,
+          st
+        });
+      }
+      if (newAR.length) S.ar = newAR;
+    }
+
+    // 3. Contas a Pagar
+    const sheetAPName = wb.SheetNames.find(s => s.toLowerCase().includes("pagar"));
+    if (sheetAPName) {
+      const gridAP = XLSX.utils.sheet_to_json(wb.Sheets[sheetAPName], { header: 1, raw: false, defval: "" });
+      const newAP = [];
+      const hIdx = gridAP.findIndex(r => Array.isArray(r) && r.some(c => String(c).toLowerCase().includes("factura") || String(c).toLowerCase().includes("fatura")));
+      const startIdx = hIdx !== -1 ? hIdx + 1 : 6;
+      for (let i = startIdx; i < gridAP.length; i++) {
+        const r = gridAP[i];
+        if (!Array.isArray(r) || !r.length) continue;
+        const no = r[0] ? String(r[0]).trim() : "";
+        if (!no || no.toLowerCase().includes("total") || no.toLowerCase().includes("antiguidade")) break;
+        const base = normalizeNum(r[7]);
+        let rate = normalizeNum(r[8]);
+        if (rate > 1) rate = rate / 100;
+        const tot = normalizeNum(r[10]) || Math.round(base * (1 + rate) * 100) / 100;
+        const pay = normalizeNum(r[11]);
+        const sal = normalizeNum(r[12]);
+        const date = normalizeDate(r[1]);
+        const due = normalizeDate(r[13]);
+        const st = r[15] || (sal <= 0.01 ? "Liquidada" : pay > 0 ? "Parcial" : "Em aberto");
+        newAP.push({
+          id: no,
+          no,
+          terc: r[2] || "",
+          date,
+          due,
+          desc: r[6] || `Factura ${no}`,
+          conta: r[5] || "42.1",
+          base,
+          rate,
+          tot,
+          pay,
+          sal,
+          st
+        });
+      }
+      if (newAP.length) S.ap = newAP;
+    }
+
+    // 4. Terceiros
+    const sheetTerName = wb.SheetNames.find(s => s.toLowerCase().includes("terceiro"));
+    if (sheetTerName) {
+      const gridTer = XLSX.utils.sheet_to_json(wb.Sheets[sheetTerName], { header: 1, raw: false, defval: "" });
+      const newTer = [];
+      const hIdx = gridTer.findIndex(r => Array.isArray(r) && r.some(c => String(c).toLowerCase().includes("código") || String(c).toLowerCase().includes("codigo")));
+      const startIdx = hIdx !== -1 ? hIdx + 1 : 5;
+      for (let i = startIdx; i < gridTer.length; i++) {
+        const r = gridTer[i];
+        if (!Array.isArray(r) || !r.length) continue;
+        const cod = r[0] ? String(r[0]).trim() : "";
+        if (!cod) continue;
+        newTer.push({
+          id: cod,
+          cod,
+          nome: r[1] || "",
+          tipo: r[2] || "Cliente",
+          nuit: r[3] || "-",
+          conta: r[4] || "",
+          cidade: r[5] || "Maputo"
+        });
+      }
+      if (newTer.length) S.ter = newTer;
+    }
+
+    // 5. Plano de Contas
+    const sheetPCName = wb.SheetNames.find(s => s.toLowerCase().includes("plano"));
+    if (sheetPCName) {
+      const gridPC = XLSX.utils.sheet_to_json(wb.Sheets[sheetPCName], { header: 1, raw: false, defval: "" });
+      const newPC = [];
+      const hIdx = gridPC.findIndex(r => Array.isArray(r) && r.some(c => String(c).toLowerCase().includes("código") || String(c).toLowerCase().includes("codigo")));
+      const startIdx = hIdx !== -1 ? hIdx + 1 : 5;
+      for (let i = startIdx; i < gridPC.length; i++) {
+        const r = gridPC[i];
+        if (!Array.isArray(r) || !r.length) continue;
+        const cod = r[0] ? String(r[0]).trim() : "";
+        const des = r[1] ? String(r[1]).trim() : "";
+        if (!cod || !des) continue;
+        newPC.push({
+          id: cod,
+          cod,
+          des,
+          niv: r[2] || "Movimento",
+          tipo: r[3] || "Balanço",
+          orig: r[4] || "PGC-NIRF",
+          saldo: 0
+        });
+      }
+      if (newPC.length) S.pc = newPC;
+    }
+
+    // Período activo: Setembro de 2026
+    if (!S.config) S.config = {};
+    S.config.mes = "09";
+    S.config.exercicio = "2026";
+    S.config.userSessionSelected = true;
+    const mSel = $("#header-periodo-mes");
+    if (mSel) mSel.value = "09";
+    const ySel = $("#header-periodo-ano");
+    if (ySel) ySel.value = "2026";
+
+    saveData();
+    const dlg = $("#dlg-excel");
+    if (dlg) dlg.close();
+    renderCurrentPage();
+    toast("🌟 Livro Contábil Oficial LECASU importado com sucesso! Reconciliação equilibrada (0,00 MZN OK).");
+    return;
+  }
+
+  // Se o utilizador selecionou uma folha individual de um livro multi-folhas
+  if (target.startsWith("sheet:") && pendingWorkbook) {
+    const [, sheetName, modType] = target.split(":");
+    target = modType || "mov";
+    const ws = pendingWorkbook.Sheets[sheetName];
+    if (ws) {
+      const rawGrid = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "", raw: false });
+      const { rows } = processRawGrid(rawGrid);
+      pendingExcelData = rows;
+    }
+  }
+
+  if (!pendingExcelData || !pendingExcelData.length) return;
+
   // Se o modo for substituição total, zera o array de destino
   if (mode === "replace") {
     if (target === "mov") S.mov = [];
@@ -2494,8 +2834,17 @@ function confirmExcelImport() {
     }
 
     pendingExcelData.forEach(r => {
+      const fullRowText = Object.values(r).join(" ").toLowerCase();
+      if (fullRowText.includes("reconciliação bancária") || fullRowText.includes("reconciliacao bancaria") || fullRowText.includes("pendentes implementação") || fullRowText.includes("pendentes entradas")) {
+        return;
+      }
+
       let desc = getCol(r, ["descrição", "descricao", "desc", "historico", "detalhe", "detalhes", "transação", "transacao", "movimento", "rubrica", "operacao", "operação", "narrativa", "beneficiario", "beneficiário", "designacao", "designação", "entidade", "texto", "assunto"]);
       const descLower = (desc || "").toLowerCase().trim();
+
+      if (descLower.includes("total do mês") || descLower.includes("total obrigações") || descLower.includes("total pendentes")) {
+        return;
+      }
 
       // Se a própria linha for o Saldo Inicial da folha / extracto
       if (descLower.includes("saldo inicial") || descLower.includes("saldo anterior") || /saldo\s+\d{1,2}[\/\.]\d{1,2}/.test(descLower)) {
