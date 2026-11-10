@@ -223,6 +223,10 @@ As regras abaixo resultam de correções diretas feitas pelo utilizador e são *
     * Na aba *Plano de Contas*: Campo de pesquisa de contas + `<button class="p" data-a="new" data-k="pc">+ Nova conta</button>`.
   * Barras `.bar` redundantes no corpo inferior das tabelas foram eliminadas, proporcionando um design compacto e moderno.
 
+### Z. Imagem de Fundo Solar e Autenticação Livre no Login
+* **Fundo de Sistemas Solares:** A tela de login (`login.html`) utiliza a imagem de um parque de painéis solares fotovoltaicos (`assets/login-bg.jpg`), substituindo definitivamente fotos de turbinas eólicas, com overlay escuro equilibrado (`linear-gradient(135deg, rgba(15, 23, 42, 0.60) 0%, rgba(24, 32, 47, 0.75) 100%)`) e iluminação radial Laranja Oficial LECASU `#FE8100`.
+* **Zero Bloqueios no Formulário:** O envio do formulário de login garante acesso imediato para o Administrador e Diretor Geral (`jossuemohamad@gmail.com`, `jossuamohamad@gmail.com`, `admin@lecasu.co.mz`, `financeiro@lecasu.co.mz`), eliminando caixas de erro ou bloqueios por ausência de backend Node.js em hospedagens estáticas Apache/cPanel.
+
 ---
 
 ## 3. Estrutura Modular do Projeto e Persistência
