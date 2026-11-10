@@ -42,7 +42,7 @@ exec("/bin/cp {$repoPath}/package.json {$deployPath}/ 2>&1", $output);
 exec("/bin/cp {$repoPath}/manifest.webmanifest {$deployPath}/ 2>&1", $output);
 exec("/bin/cp {$repoPath}/sw.js {$deployPath}/ 2>&1", $output);
 exec("/bin/cp {$repoPath}/.htaccess {$deployPath}/ 2>&1", $output);
-exec("/bin/cp {$repoPath}/deploy.php {$deployPath}/ 2>&1", $output);
+exec("/bin/cp {$repoPath}/*.php {$deployPath}/ 2>&1", $output);
 
 // Captura commit atual
 $currentCommit = exec("cd {$repoPath} && git rev-parse --short HEAD 2>&1");
