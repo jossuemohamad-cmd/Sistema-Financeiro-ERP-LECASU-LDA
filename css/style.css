@@ -1358,7 +1358,10 @@ textarea:focus,
   height: 38px;
   display: inline-flex;
   align-items: center;
+  gap: 6px;
   box-sizing: border-box;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 td input,

@@ -411,6 +411,10 @@ function renderDashboardView(R) {
 function recTab(R) {
   const P_act = getActivePeriod();
   const ok = Math.abs(R.diff) < 0.01;
+  const q = searchQ.trim().toLowerCase();
+  const filterMv = (arr) => q ? arr.filter(x => (x.ent + " " + (x.ref || "") + " " + (x.desc || "") + " " + (x.cat || "")).toLowerCase().includes(q)) : arr;
+  const filteredBook = filterMv(R.book || []);
+  const filteredEx = filterMv(R.ex || []);
   const pend = (a, t) => sc(head(["Nº Documento", "Terceiro", "Estado", "Saldo em aberto", "Vencimento"], ["Saldo em aberto"]) + a.map(x => `<tr><td>${esc(x.no)}</td><td>${esc((T(x.terc) || {}).nome)}</td><td>${badge(x.st)}</td><td class="n">${m(x.sal)}</td><td>${d(x.due)}</td></tr>`).join("") + `<tr class="t"><td colspan="3">${t}</td><td class="n">${m(a.reduce((s, x) => s + x.sal, 0))}</td><td></td></tr>`);
 
   return `
@@ -434,9 +438,9 @@ function recTab(R) {
       `).join("")}
     </div>
 
-    ${sc(head(MH, ["Entrada (MZN)", "Saída (MZN)", "Saldo (MZN)"]) + R.book.map(x => mrow(x, 1)).join("") + `<tr class="t"><td></td><td>Total do mês</td><td></td><td class="n">${m(R.tin)}</td><td class="n">${m(R.tout)}</td><td class="n">${m(R.contab)}</td><td colspan="9"></td><td class="col-actions ac"></td></tr>`)}
+    ${sc(head(MH, ["Entrada (MZN)", "Saída (MZN)", "Saldo (MZN)"]) + filteredBook.map(x => mrow(x, 1)).join("") + `<tr class="t"><td></td><td>Total do mês</td><td></td><td class="n">${m(R.tin)}</td><td class="n">${m(R.tout)}</td><td class="n">${m(R.contab)}</td><td colspan="9"></td><td class="col-actions ac"></td></tr>`)}
     <h2>Movimentos no extracto ainda não registados na contabilidade (a lançar no ERP)</h2>
-    ${sc(head(MH, ["Entrada (MZN)", "Saída (MZN)", "Saldo (MZN)"]) + (R.ex.map(x => mrow(x, 0)).join("") || '<tr><td colspan="16"><small>Sem movimentos.</small></td></tr>'))}
+    ${sc(head(MH, ["Entrada (MZN)", "Saída (MZN)", "Saldo (MZN)"]) + (filteredEx.map(x => mrow(x, 0)).join("") || '<tr><td colspan="16"><small>Sem movimentos.</small></td></tr>'))}
     <h2>Reconciliação bancária – ${P_act.dataFormatada}</h2>
     <div class="recon-compare-grid">
       <!-- Lado Esquerdo: Livro Razão Contabilístico -->
@@ -540,9 +544,11 @@ function invTab(k, L) {
 
 // Views de Conteúdo: Terceiros
 function terTab() {
+  const q = searchQ.trim().toLowerCase();
+  const list = q ? S.ter.filter(t => (t.cod + " " + t.nome + " " + t.tipo + " " + t.nuit + " " + t.prov).toLowerCase().includes(q)) : S.ter;
   return `
 
-    ${sc(head(["Código", "Nome / Designação", "Tipo", "NUIT", "Conta por defeito", "Província", ""]) + S.ter.map(t => `<tr><td>${esc(t.cod)}</td><td>${esc(t.nome)}</td><td>${esc(t.tipo)}</td><td>${esc(t.nuit)}</td><td>${esc(t.conta)}</td><td>${esc(t.prov)}</td>${btns("ter", t.id)}</tr>`).join(""))}
+    ${sc(head(["Código", "Nome / Designação", "Tipo", "NUIT", "Conta por defeito", "Província", ""]) + list.map(t => `<tr><td>${esc(t.cod)}</td><td>${esc(t.nome)}</td><td>${esc(t.tipo)}</td><td>${esc(t.nuit)}</td><td>${esc(t.conta)}</td><td>${esc(t.prov)}</td>${btns("ter", t.id)}</tr>`).join(""))}
   `;
 }
 
@@ -949,10 +955,16 @@ function renderMateriaView() {
 }
 
 // View: Recursos Humanos (RH)
+let rhDeptFilter = "all";
+
 function renderRHView() {
   const P_act = getActivePeriod();
   const q = searchQ.trim().toLowerCase();
   let list = S.rh || [];
+
+  if (rhDeptFilter !== "all") {
+    list = list.filter(r => (r.dept || "").toLowerCase() === rhDeptFilter.toLowerCase());
+  }
 
   if (q) {
     list = list.filter(r => 
@@ -969,6 +981,7 @@ function renderRHView() {
   const totalSalBruto = r2(allRH.reduce((a, x) => a + (x.salario || 0), 0));
   const inssPatronal = r2(totalSalBruto * 0.04);
   const mediaSal = totalColab > 0 ? r2(totalSalBruto / totalColab) : 0;
+  const depts = ["all", ...new Set(allRH.map(r => r.dept).filter(Boolean))];
 
   const rows = list.map(c => `
     <tr>
@@ -1031,7 +1044,9 @@ function renderRHView() {
     </div>
 
     <div class="bar">
-      <span class="sp"></span>
+      <div class="filters-wrap">
+        ${depts.map(d => `<button class="btn-sec ${rhDeptFilter === d ? "on" : ""}" data-filter-rh="${d}">${d === "all" ? `Todos (${totalColab})` : d}</button>`).join("")}
+      </div>
       <div class="bar-search-actions">
         <input type="search" id="q" placeholder="Pesquisar por colaborador, cargo, departamento..." value="${esc(searchQ)}">
         <button class="p" data-a="new" data-k="rh">+ Novo Colaborador</button>
@@ -1347,7 +1362,24 @@ function renderConfiguracoesView() {
 
   return `
     <div class="bar">
-      <span class="sp"></span>
+      <div class="filters-wrap">
+        <button type="button" class="btn-sec" data-scroll-to="card-empresa">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16"/></svg>
+          <span>Empresa & Contactos</span>
+        </button>
+        <button type="button" class="btn-sec" data-scroll-to="card-fiscal">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v12"/><path d="M6 12h12"/></svg>
+          <span>Fiscal & Moçambique</span>
+        </button>
+        <button type="button" class="btn-sec" data-scroll-to="card-neon">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+          <span>PostgreSQL Neon</span>
+        </button>
+        <button type="button" class="btn-sec" data-scroll-to="card-backup">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          <span>Segurança & Backup</span>
+        </button>
+      </div>
       <div class="bar-search-actions">
         <button class="p" id="save-config">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1362,7 +1394,7 @@ function renderConfiguracoesView() {
 
     <div class="config-grid">
       <!-- Card 1: Dados da Empresa -->
-      <div class="config-card">
+      <div class="config-card" id="card-empresa">
         <h3>
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M3 21h18"/>
@@ -1399,7 +1431,7 @@ function renderConfiguracoesView() {
       </div>
 
       <!-- Card 2: Parâmetros Fiscais e Contábeis -->
-      <div class="config-card">
+      <div class="config-card" id="card-fiscal">
         <h3>
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="10"/>
@@ -1433,7 +1465,7 @@ function renderConfiguracoesView() {
       </div>
 
       <!-- Card Neon PostgreSQL -->
-      <div class="config-card" style="grid-column: 1 / -1; border-left: 4px solid #047857">
+      <div class="config-card" id="card-neon" style="grid-column: 1 / -1; border-left: 4px solid #047857">
         <h3>
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#047857" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <ellipse cx="12" cy="5" rx="9" ry="3"/>
@@ -1477,7 +1509,7 @@ function renderConfiguracoesView() {
       </div>
 
       <!-- Card 3: Estatísticas de Dados e Segurança -->
-      <div class="config-card" style="grid-column: 1 / -1">
+      <div class="config-card" id="card-backup" style="grid-column: 1 / -1">
         <h3>
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
@@ -1887,7 +1919,10 @@ function renderCurrentPage() {
       if (currentPage === "fin") {
         tabsActionsEl.style.display = "flex";
         if (activeTab === "rec") {
-          tabsActionsEl.innerHTML = `<button class="p" data-a="new" data-k="mov">+ Novo movimento</button>`;
+          tabsActionsEl.innerHTML = `
+            <input type="search" id="q" placeholder="Pesquisar movimento, entidade..." value="${esc(searchQ)}">
+            <button class="p" data-a="new" data-k="mov">+ Novo movimento</button>
+          `;
         } else if (activeTab === "ar" || activeTab === "ap") {
           tabsActionsEl.innerHTML = `
             <label class="tab-action-label">
@@ -1897,7 +1932,10 @@ function renderCurrentPage() {
             <button class="p" data-a="new" data-k="${activeTab}">+ Nova factura</button>
           `;
         } else if (activeTab === "ter") {
-          tabsActionsEl.innerHTML = `<button class="p" data-a="new" data-k="ter">+ Novo terceiro</button>`;
+          tabsActionsEl.innerHTML = `
+            <input type="search" id="q" placeholder="Pesquisar terceiro, NUIT..." value="${esc(searchQ)}">
+            <button class="p" data-a="new" data-k="ter">+ Novo terceiro</button>
+          `;
         } else if (activeTab === "pc") {
           tabsActionsEl.innerHTML = `
             <input type="search" id="q" placeholder="Pesquisar por código ou designação..." value="${esc(searchQ)}">
@@ -2764,6 +2802,25 @@ function setupGlobalListeners() {
     if (b.dataset.filterAtivos) {
       ativosCatFilter = b.dataset.filterAtivos;
       renderCurrentPage();
+      return;
+    }
+    if (b.dataset.filterRh) {
+      rhDeptFilter = b.dataset.filterRh;
+      renderCurrentPage();
+      return;
+    }
+    if (b.dataset.scrollTo) {
+      const target = document.getElementById(b.dataset.scrollTo);
+      if (target) {
+        target.scrollIntoView({ behavior: "smooth", block: "start" });
+        target.style.transition = "box-shadow 0.3s ease, border-color 0.3s ease";
+        target.style.borderColor = "var(--ac)";
+        target.style.boxShadow = "0 0 0 4px rgba(254, 129, 0, 0.25)";
+        setTimeout(() => {
+          target.style.borderColor = "";
+          target.style.boxShadow = "";
+        }, 1500);
+      }
       return;
     }
     if (b.dataset.repTab) {
