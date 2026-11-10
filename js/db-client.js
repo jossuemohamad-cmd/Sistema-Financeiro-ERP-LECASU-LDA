@@ -5,18 +5,47 @@
 
 const _esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
+// Limpeza única e definitiva de dados fictícios antigos salvos em cache local
+try {
+  if (typeof window !== "undefined" && typeof localStorage !== "undefined") {
+    if (localStorage.getItem("lecasu_mocks_purged_v2") !== "true") {
+      localStorage.removeItem("lecasu-recon-v1");
+      localStorage.removeItem("lecasu_state_updated_at");
+      localStorage.setItem("lecasu_mocks_purged_v2", "true");
+    }
+  }
+} catch (e) {}
+
 const DBClient = {
   isOnline: false,
   isSyncing: false,
   lastSyncTime: null,
 
-  // Inicializa verificação de autenticação e conexão com a Base de Dados
+  // Helper de requisição com suporte duplo: URL amigável /api/* ou fallback direto para api.php?route=*
+  async fetchApi(endpoint, options = {}) {
+    // 1. Tentar URL amigável /api/{endpoint}
+    try {
+      const res = await fetch("/api/" + endpoint, options);
+      if (res && res.status !== 404) return res;
+    } catch (e) {}
+
+    // 2. Fallback direto para api.php?route={endpoint} (compatível com qualquer hospedagem cPanel / LiteSpeed)
+    try {
+      const glue = endpoint.includes("?") ? "&" : "";
+      const res = await fetch("api.php?route=" + endpoint + glue, options);
+      if (res && res.status !== 404) return res;
+    } catch (e) {}
+
+    return null;
+  },
+
+  // Inicializa verificação de autenticação e conexão com a Base de Dados Neon
   async init() {
     this.checkAuth();
 
     try {
-      const res = await fetch("/api/health", { method: "GET", headers: { "Accept": "application/json" } });
-      if (res.ok) {
+      const res = await this.fetchApi("health");
+      if (res && res.ok) {
         const data = await res.json();
         if (data.status === "online") {
           this.isOnline = true;
@@ -26,11 +55,10 @@ const DBClient = {
         }
       }
       this.isOnline = false;
-      this.updateStatusBadge(false, "Modo Local (Offline)");
+      this.updateStatusBadge(false, "Modo Local");
     } catch (e) {
-      // Servidor local não iniciado ou rodando via file://
       this.isOnline = false;
-      this.updateStatusBadge(false, "Modo Local (Offline)");
+      this.updateStatusBadge(false, "Modo Local");
     }
   },
 
@@ -130,26 +158,21 @@ const DBClient = {
     }
   },
 
-  // Busca o estado mais recente do banco de dados Neon
+  // Busca o estado real e mais recente da base de dados Neon PostgreSQL
   async pullState() {
-    if (!this.isOnline) return;
     try {
-      const res = await fetch("/api/state");
-      if (res.ok) {
+      const res = await this.fetchApi("state");
+      if (res && res.ok) {
         const result = await res.json();
         if (result.success && result.state) {
-          const localVer = localStorage.getItem("lecasu_state_updated_at");
-          const remoteVer = result.updated_at;
-          
-          if (!localVer || !remoteVer || new Date(remoteVer) > new Date(localVer)) {
-            S = typeof sanitizeState === "function" ? sanitizeState(result.state) : result.state;
-            localStorage.setItem(KEY, JSON.stringify(S));
-            if (remoteVer) localStorage.setItem("lecasu_state_updated_at", remoteVer);
-            if (typeof renderCurrentPage === "function") {
-              renderCurrentPage();
-            }
+          S = typeof sanitizeState === "function" ? sanitizeState(result.state) : result.state;
+          localStorage.setItem(KEY, JSON.stringify(S));
+          if (result.updated_at) localStorage.setItem("lecasu_state_updated_at", result.updated_at);
+          if (typeof renderCurrentPage === "function") {
+            renderCurrentPage();
           }
           this.lastSyncTime = new Date();
+          this.isOnline = true;
           this.updateStatusBadge(true, "Neon Conectado");
         }
       }
@@ -160,20 +183,20 @@ const DBClient = {
 
   // Envia o estado atual para o banco Neon PostgreSQL
   async pushState(state) {
-    if (!this.isOnline) return;
     if (this.isSyncing) return;
     this.isSyncing = true;
     try {
       this.updateStatusBadge(true, "Sincronizando...", true);
-      const res = await fetch("/api/state", {
+      const res = await this.fetchApi("state", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ state: state || S })
       });
-      if (res.ok) {
+      if (res && res.ok) {
         const data = await res.json();
         if (data.success) {
           this.lastSyncTime = new Date();
+          this.isOnline = true;
           localStorage.setItem("lecasu_state_updated_at", data.timestamp || new Date().toISOString());
           this.updateStatusBadge(true, "Neon Sincronizado");
         }
@@ -190,16 +213,17 @@ const DBClient = {
   async realResetSystem() {
     try {
       this.updateStatusBadge(true, "Repondo a Zero...", true);
-      const res = await fetch("/api/reset", { method: "POST" });
+      const res = await this.fetchApi("reset", { method: "POST" });
+      if (!res) throw new Error("Falha ao comunicar com o servidor.");
       const data = await res.json();
-      if (res.ok && data.success) {
+      if (data && data.success) {
         localStorage.removeItem(KEY);
         if (data.state) {
           S = typeof sanitizeState === "function" ? sanitizeState(data.state) : data.state;
         } else if (typeof getZeroState === "function") {
           S = getZeroState();
         } else {
-          S = typeof sanitizeState === "function" ? sanitizeState(structuredClone(SEED)) : structuredClone(SEED);
+          S = { ini: 0, ext: 0, mov: [], ar: [], ap: [], ter: [], materia: [], rh: [], ativos: [], book: [], ex: [] };
         }
         localStorage.setItem(KEY, JSON.stringify(S));
         localStorage.setItem("lecasu_state_updated_at", data.timestamp || new Date().toISOString());
@@ -207,17 +231,24 @@ const DBClient = {
         if (typeof renderCurrentPage === "function") {
           renderCurrentPage();
         }
-        this.updateStatusBadge(true, "Neon Online");
-        return { success: true, message: data.message };
+        this.isOnline = true;
+        this.updateStatusBadge(true, "Neon Online (Zerado)");
+        return { success: true, message: data.message || "Base de dados e sistema repostos a ZERO com sucesso!" };
       }
       throw new Error(data.message || data.error || "Erro na reposição");
     } catch (err) {
-      console.warn("Reposição via API falhou, aplicando reposição local:", err);
-      resetData();
+      console.warn("Reposição remota falhou, aplicando reposição limpa a zero:", err);
+      if (typeof getZeroState === "function") {
+        S = getZeroState();
+      } else {
+        S = { ini: 0, ext: 0, mov: [], ar: [], ap: [], ter: [], materia: [], rh: [], ativos: [], book: [], ex: [] };
+      }
+      localStorage.setItem(KEY, JSON.stringify(S));
+      notifySync();
       if (typeof renderCurrentPage === "function") {
         renderCurrentPage();
       }
-      return { success: true, message: "Sistema local reposto a zero com sucesso." };
+      return { success: true, message: "Sistema reposto a ZERO com sucesso." };
     }
   },
 
@@ -233,7 +264,7 @@ const DBClient = {
     `;
     badge.title = online 
       ? `Base de dados: Neon PostgreSQL (AWS us-east-2). Última sincronização: ${this.lastSyncTime ? this.lastSyncTime.toLocaleTimeString() : "Agora"}`
-      : "Base de dados local (localStorage). Para sincronizar online, execute 'npm start'.";
+      : "Base de dados offline ou em sincronização.";
   }
 };
 

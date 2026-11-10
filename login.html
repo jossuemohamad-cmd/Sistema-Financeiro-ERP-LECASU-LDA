@@ -373,9 +373,23 @@
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ email: email || "jossuemohamad@gmail.com", password })
           });
+          if (!res || res.status === 404) {
+            res = await fetch("api.php?route=auth/login", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ email: email || "jossuemohamad@gmail.com", password })
+            });
+          }
         } catch (netErr) {
-          // Servidor estático cPanel / sem API Node online
-          res = null;
+          try {
+            res = await fetch("api.php?route=auth/login", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ email: email || "jossuemohamad@gmail.com", password })
+            });
+          } catch (e2) {
+            res = null;
+          }
         }
 
         if (res && res.ok) {

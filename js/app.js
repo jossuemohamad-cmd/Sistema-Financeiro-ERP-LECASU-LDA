@@ -352,7 +352,7 @@ function renderDashboardView(R) {
     <div class="kpis">
       ${kpi("Saldo contabilístico ajustado", m(R.adj))}
       ${kpi("Saldo bancário ajustado", m(R.bank))}
-      ${kpi("Diferença de reconciliação", m(R.diff), ok ? "" : "er", ok ? "0,00 MZN OK" : "VERIFICAR")}
+      ${kpi("Diferença de reconciliação", m(R.diff), ok ? "" : "er", ok ? "Reconciliado (OK)" : "Divergência detetada")}
       ${kpi("A receber em aberto", m(R.pr), "", `${R.or.length} facturas`)}
       ${kpi("A pagar em aberto", m(R.pa), "er", `${R.oa.length} facturas`)}
       ${kpi("Saldo líquido", m(R.liq), "", `${venc} factura(s) vencida(s)`)}
@@ -421,7 +421,7 @@ function recTab(R) {
     <div class="kpis">
       ${kpi("Saldo contabilístico ajustado", m(R.adj))}
       ${kpi("Saldo bancário ajustado", m(R.bank))}
-      ${kpi("Diferença de reconciliação", m(R.diff) + " · " + (ok ? "0,00 MZN OK" : "VERIFICAR"), ok ? "ok" : "er")}
+      ${kpi("Diferença de reconciliação", m(R.diff), ok ? "ok" : "er", ok ? "Reconciliado (OK)" : "Divergência detetada")}
       ${kpi("Total Entradas no Mês", m(R.tin), "in")}
       ${kpi("Total Saídas no Mês", m(R.tout), "wa")}
       ${kpi("Saldo líquido", m(R.liq))}
@@ -2870,16 +2870,17 @@ function setupGlobalListeners() {
     }
 
     if (b.id === "btn-test-db") {
-      fetch("/api/health")
-        .then(r => r.json())
+      const fetchCall = (typeof DBClient !== "undefined" && DBClient.fetchApi) ? DBClient.fetchApi("health") : fetch("/api/health");
+      Promise.resolve(fetchCall)
+        .then(r => r ? r.json() : Promise.reject())
         .then(d => {
-          if (d.status === "online") {
+          if (d && d.status === "online") {
             toast(`Conexão bem-sucedida ao Neon PostgreSQL (${d.database})!`);
           } else {
-            toast("Erro: " + (d.message || "Não foi possível conectar."));
+            toast("Erro: " + ((d && d.message) || "Não foi possível conectar."));
           }
         })
-        .catch(err => toast("Servidor local desligado. Inicie com 'npm start'."));
+        .catch(() => toast("Não foi possível conectar ao Neon PostgreSQL."));
       return;
     }
     if (b.id === "btn-sync-db") {
@@ -2916,11 +2917,12 @@ function setupGlobalListeners() {
     if (b.id === "cfg-btn-rst" || b.id === "rst") {
       showConfirm(
         "Zerar / Repor Sistema a Zero",
-        "Tem a certeza que deseja ZERAR o sistema? Todas as movimentações, facturas e registos operacionais serão apagados no Neon PostgreSQL e no cache local, ficando o ERP limpo a ZERO para o novo exercício.",
+        "Tem a certeza que deseja ZERAR o sistema? Todas as movimentações, facturas, clientes e materiais fictícios serão apagados na base de dados Neon PostgreSQL e no cache local, ficando o ERP 100% limpo a ZERO para o registo dos seus dados reais.",
         async () => {
           if (typeof DBClient !== "undefined" && typeof DBClient.realResetSystem === "function") {
             toast("A zerar a base de dados Neon PostgreSQL...");
             const res = await DBClient.realResetSystem();
+            renderCurrentPage();
             toast(res.message || "Sistema e Base de Dados Neon zerados com sucesso!");
           } else {
             resetData();

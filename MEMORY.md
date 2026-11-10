@@ -239,6 +239,9 @@ As regras abaixo resultam de correções diretas feitas pelo utilizador e são *
   - `Base de Dados PostgreSQL (Neon Cloud)` fica posicionada **ao lado** de `Parâmetros Contabilísticos e Fiscais (Moçambique)`, com layout vertical compacto e botões de ação organizados, eliminando espaços vazios.
   - `Estado da Base de Dados e Cópia de Segurança` ocupa a linha inferior com as estatísticas de tabelas e botões de backup/restauro.
 * **Financeiro (`financeiro.html`):** As abas de *Reconciliação Bancária* e *Terceiros* agora dispõem do campo de pesquisa `#q` reativo integrado, eliminando lacunas e tornando todas as tabelas pesquisáveis.
+* **KPI "Diferença de Reconciliação":** Exibe estritamente o valor único `m(R.diff)` acompanhado da legenda de status (`Reconciliado (OK)` ou `Divergência detetada`), sendo estritamente proibida a repetição de montantes ou concatenação redundante como `0,00 MZN · 0,00 MZN`.
+* **Tipografia Compacta dos Cards:** Os cartões de KPI (`.k`) possuem fonte ajustada (`1.125rem` no valor `b` e `0.72rem` nos rótulos), e os blocos `.cd` e `.config-card` contam com espaçamentos otimizados para evitar quebras desnecessárias de linha e manter o visual refinado.
+* **Persistência Real Neon PostgreSQL (Sem Fictícios/Seeds):** O backend cPanel executa nativamente via `api.php` conectando-se ao Neon PostgreSQL via HTTPS SQL. A ação de "Zerar" limpa fisicamente todas as tabelas no Neon (`TRUNCATE TABLE ... CASCADE`), expurga caches locais e mantém o sistema a ZERO para dados reais. A interface consome unicamente dados do banco de dados.
 
 ---
 

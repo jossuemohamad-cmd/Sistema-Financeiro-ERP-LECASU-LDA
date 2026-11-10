@@ -277,11 +277,15 @@ function loadData() {
   } catch (e) {
     console.error("Erro ao ler localStorage", e);
   }
-  const cloned = structuredClone(SEED);
-  cloned.config.mes = rt.mes;
-  cloned.config.exercicio = rt.ano;
-  cloned.ref = rt.iso;
-  return sanitizeState(cloned);
+  return getZeroState();
+}
+
+function resetData() {
+  S = getZeroState();
+  try {
+    localStorage.setItem(KEY, JSON.stringify(S));
+  } catch (e) {}
+  notifySync();
 }
 
 function notifySync() {
