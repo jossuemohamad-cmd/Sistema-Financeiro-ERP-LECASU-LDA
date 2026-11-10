@@ -295,6 +295,25 @@ try {
                 }
             }
 
+            // Plano de Contas
+            neonQuery("DELETE FROM tb_plano_contas");
+            if (!empty($state['pc']) && is_array($state['pc'])) {
+                foreach ($state['pc'] as $p) {
+                    neonQuery(
+                        "INSERT INTO tb_plano_contas (id, cod, nome, classe, tipo, saldo)
+                         VALUES ($1, $2, $3, $4, $5, $6)",
+                        [
+                            $p['id'] ?? ($p['cod'] ?? uniqid('pc_')),
+                            $p['cod'] ?? '',
+                            $p['des'] ?? ($p['nome'] ?? ''),
+                            $p['cls'] ?? ($p['niv'] ?? 'Movimento'),
+                            $p['tipo'] ?? 'Balanço',
+                            (float)($p['saldo'] ?? 0)
+                        ]
+                    );
+                }
+            }
+
             echo json_encode([
                 'success' => true,
                 'timestamp' => date('c')
@@ -305,27 +324,8 @@ try {
 
     // 3. Reset Real do Sistema (Zerar Tudo)
     if ($route === 'reset') {
-        // Limpar todas as tabelas operacionais no PostgreSQL
-        neonQuery("TRUNCATE TABLE tb_movimentos, tb_faturas_ar, tb_faturas_ap, tb_terceiros, tb_material_produtos, tb_colaboradores, tb_ativos_inventario");
-
-        // Zera os saldos das contas do Plano de Contas
-        neonQuery("UPDATE tb_plano_contas SET saldo = 0, updated_at = CURRENT_TIMESTAMP");
-
-        // Obter contas PGC estruturadas
-        $resPc = neonQuery("SELECT cod, nome, classe, tipo FROM tb_plano_contas ORDER BY cod ASC");
-        $pcTemplate = [];
-        if (!empty($resPc['rows'])) {
-            foreach ($resPc['rows'] as $r) {
-                $pcTemplate[] = [
-                    'id' => $r['cod'],
-                    'cod' => $r['cod'],
-                    'des' => $r['nome'],
-                    'cls' => $r['classe'],
-                    'tipo' => $r['tipo'],
-                    'saldo' => 0
-                ];
-            }
-        }
+        // Limpar todas as tabelas operacionais e contas no PostgreSQL
+        neonQuery("TRUNCATE TABLE tb_movimentos, tb_faturas_ar, tb_faturas_ap, tb_terceiros, tb_material_produtos, tb_colaboradores, tb_ativos_inventario, tb_plano_contas");
 
         $curYear = date('Y');
         $curMonth = date('m');
@@ -345,7 +345,7 @@ try {
             'book' => [],
             'ex' => [],
             'bank' => [],
-            'pc' => $pcTemplate,
+            'pc' => [],
             'config' => [
                 'empresa' => 'LECASU, LDA.',
                 'nuit' => '400999888',
@@ -371,7 +371,7 @@ try {
 
         echo json_encode([
             'success' => true,
-            'message' => 'Base de dados Neon PostgreSQL reposta a ZERO com sucesso. Todos os registos fictícios foram apagados.',
+            'message' => 'Base de dados Neon PostgreSQL reposta a ZERO com sucesso. Todos os registos foram apagados.',
             'state' => $zeroState,
             'timestamp' => date('c')
         ]);

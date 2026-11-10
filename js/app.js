@@ -545,10 +545,34 @@ function terTab() {
 let searchQ = "";
 function pcTab() {
   const f = searchQ.toLowerCase();
-  const L = S.pc.filter(p => !f || (p.cod + " " + p.des).toLowerCase().includes(f));
-  return `
+  const list = S.pc || [];
+  const L = list.filter(p => !f || (p.cod + " " + p.des).toLowerCase().includes(f));
 
-    ${sc(head(["Código", "Designação", "Nível", "Tipo", "Origem", ""]) + L.map(p => `<tr><td>${esc(p.cod)}</td><td>${esc(p.des)}</td><td>${esc(p.niv)}</td><td>${esc(p.tipo)}</td><td>${esc(p.orig)}</td>${btns("pc", p.id)}</tr>`).join(""))}
+  if (!list.length) {
+    return `
+      <div class="sc" style="padding:40px 20px;text-align:center">
+        <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="var(--mu)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:12px">
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+        </svg>
+        <h3 style="margin-bottom:8px">Plano de Contas a Zero</h3>
+        <p style="color:var(--mu);max-width:520px;margin:0 auto 18px;font-size:0.875rem">
+          Nenhuma conta contábil cadastrada no momento (Sistema 100% Zerado). Pode criar contas manualmente, importar via Excel ou carregar o plano oficial PGC-NIRF de Moçambique.
+        </p>
+        <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+          <button class="p" data-a="new" data-k="pc">+ Nova Conta Manual</button>
+          <button class="btn-sec" id="btn-load-pgc-official">Carregar PGC-NIRF Moçambique (43 Contas Padrão)</button>
+        </div>
+      </div>
+    `;
+  }
+
+  return `
+    <div style="margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+      <span style="font-size:0.82rem;color:var(--mu)"><b>${list.length}</b> conta(s) registada(s) no Plano de Contas</span>
+      <button class="btn-sec btn-sm del" id="btn-clear-pc" title="Limpar todas as contas contábeis">Limpar Contas</button>
+    </div>
+    ${sc(head(["Código", "Designação", "Nível", "Tipo", "Origem", ""]) + (L.length ? L.map(p => `<tr><td><b>${esc(p.cod)}</b></td><td>${esc(p.des)}</td><td>${esc(p.niv || "Movimento")}</td><td>${esc(p.tipo || "Balanço")}</td><td>${esc(p.orig || "Manual")}</td>${btns("pc", p.id)}</tr>`).join("") : '<tr><td colspan="6" style="text-align:center;color:var(--mu);padding:18px">Nenhuma conta encontrada com o termo pesquisado.</td></tr>'))}
   `;
 }
 
@@ -564,7 +588,7 @@ const TABS = [
 let activeTab = "rec";
 
 // Modais e Formulários de Edição / Criação com Placeholders Obrigatórios
-const pcO = () => S.pc.map(p => [p.cod, p.cod + " – " + p.des]);
+const pcO = () => (S.pc && S.pc.length ? S.pc.map(p => [p.cod, p.cod + " – " + p.des]) : [["", "— Nenhuma conta cadastrada —"]]);
 const tO = t => [["", "— sem terceiro —"], ...S.ter.filter(x => !t || x.tipo === t).map(x => [x.cod, x.cod + " – " + x.nome])];
 
 const invF = t => [
@@ -2459,9 +2483,8 @@ function confirmExcelImport() {
     }
 
     pendingExcelData.forEach(r => {
-      const desc = getCol(r, ["descrição", "descricao", "desc", "historico", "detalhe", "detalhes", "transação", "transacao", "movimento", "rubrica"]);
-      if (!desc) return;
-      const descLower = desc.toLowerCase().trim();
+      let desc = getCol(r, ["descrição", "descricao", "desc", "historico", "detalhe", "detalhes", "transação", "transacao", "movimento", "rubrica", "operacao", "operação", "narrativa", "beneficiario", "beneficiário", "designacao", "designação", "entidade", "texto", "assunto"]);
+      const descLower = (desc || "").toLowerCase().trim();
 
       // Se a própria linha for o Saldo Inicial da folha / extracto
       if (descLower.includes("saldo inicial") || descLower.includes("saldo anterior") || /saldo\s+\d{1,2}[\/\.]\d{1,2}/.test(descLower)) {
@@ -2479,9 +2502,40 @@ function confirmExcelImport() {
         if (val > 0) entrada = val;
         else if (val < 0) saida = Math.abs(val);
       }
+
+      // Se ainda não encontrou valores numéricos, verificar posição das colunas
+      if (entrada <= 0 && saida <= 0) {
+        const vals = Object.values(r);
+        const keys = Object.keys(r);
+        for (let i = 1; i < vals.length; i++) {
+          const num = normalizeNum(vals[i]);
+          if (num > 0) {
+            const k = (keys[i] || "").toLowerCase();
+            if (k.includes("said") || k.includes("deb") || k.includes("out")) saida = num;
+            else if (!k.includes("sal")) entrada = num;
+            break;
+          }
+        }
+      }
+
       if (entrada <= 0 && saida <= 0) return;
 
-      const date = normalizeDate(getCol(r, ["data", "date", "data valor", "data movimento"]));
+      // Se a descrição ainda não foi identificada mas temos valor:
+      if (!desc) {
+        const vals = Object.values(r);
+        if (vals[1] && typeof vals[1] === "string" && isNaN(Number(vals[1]))) {
+          desc = vals[1].trim();
+        } else {
+          desc = getCol(r, ["documento", "doc", "ref", "referencia"]) || (entrada > 0 ? "Recebimento bancário" : "Pagamento bancário");
+        }
+      }
+
+      let dateRaw = getCol(r, ["data", "date", "data valor", "data movimento", "dia"]);
+      if (!dateRaw) {
+        const firstVal = Object.values(r)[0];
+        if (firstVal) dateRaw = firstVal;
+      }
+      const date = normalizeDate(dateRaw);
       const cat = getCol(r, ["categoria", "cat", "rubrica"]) || (entrada > 0 ? "Receita" : "Despesa Operacional");
       const tipo = getCol(r, ["tipo", "tipo de movimento", "operação", "operacao"]) || (entrada > 0 ? "Recebimento de Cliente" : "Pagamento a Fornecedor");
       const doc = getCol(r, ["documento", "doc", "nº documento", "factura", "fatura", "recibo"]);
@@ -2849,6 +2903,31 @@ function confirmExcelImport() {
     });
   }
 
+  // Se importou movimentos bancários, sincronizar automaticamente o período ativo para o mês/ano da folha importada
+  if (target === "mov" && (inserted > 0 || updated > 0)) {
+    const monthCounts = {};
+    const yearCounts = {};
+    (S.mov || []).slice(-(inserted + updated)).forEach(m => {
+      if (m.date && /^\d{4}-\d{2}-\d{2}$/.test(m.date)) {
+        const [y, mm] = m.date.split("-");
+        monthCounts[mm] = (monthCounts[mm] || 0) + 1;
+        yearCounts[y] = (yearCounts[y] || 0) + 1;
+      }
+    });
+    const bestMonth = Object.keys(monthCounts).sort((a,b) => monthCounts[b] - monthCounts[a])[0];
+    const bestYear = Object.keys(yearCounts).sort((a,b) => yearCounts[b] - yearCounts[a])[0];
+    if (bestMonth) {
+      if (!S.config) S.config = {};
+      S.config.mes = bestMonth;
+      if (bestYear) S.config.exercicio = bestYear;
+      S.config.userSessionSelected = true;
+      const mSel = $("#header-periodo-mes");
+      if (mSel) mSel.value = bestMonth;
+      const ySel = $("#header-periodo-ano");
+      if (ySel) ySel.value = bestYear;
+    }
+  }
+
   saveData();
   const dlg = $("#dlg-excel");
   if (dlg) dlg.close();
@@ -3070,6 +3149,32 @@ function setupGlobalListeners() {
           console.error("Erro síncrono:", err);
         }
       }
+      return;
+    }
+
+    if (b.id === "btn-load-pgc-official") {
+      if (typeof window !== "undefined" && Array.isArray(window.PGC_STANDARD_MOZAMBIQUE)) {
+        S.pc = JSON.parse(JSON.stringify(window.PGC_STANDARD_MOZAMBIQUE));
+        saveData();
+        renderCurrentPage();
+        toast("Plano de Contas Oficial PGC-NIRF carregado com sucesso (43 contas)!");
+      }
+      return;
+    }
+
+    if (b.id === "btn-clear-pc") {
+      showConfirm(
+        "Limpar Plano de Contas",
+        "Tem a certeza que deseja limpar todas as contas contábeis? O Plano de Contas ficará a ZERO.",
+        () => {
+          S.pc = [];
+          saveData();
+          renderCurrentPage();
+          toast("Plano de Contas zerado com sucesso!");
+        },
+        "Sim, Limpar",
+        true
+      );
       return;
     }
 
