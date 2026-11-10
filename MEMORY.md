@@ -212,6 +212,17 @@ As regras abaixo resultam de correções diretas feitas pelo utilizador e são *
   * `calc()`, `inv()`, `renderDashboardView()` e `setupGlobalListeners()` utilizam fallbacks defensivos (`S.mov || []`, `S.ar || []`, `S.ap || []`), impedindo qualquer `TypeError: S.mov is not iterable` ou quebra de renderização.
   * O seletor de período no cabeçalho inicializa imediatamente no mês e ano atuais sem depender da conclusão de requisições de rede.
 
+### Y. Linha Unificada de Abas e Botões de Ação (Módulo Financeiro)
+* **Organização Horizontal na Mesma Linha (`.tabs-bar-row`):**
+  * As abas financeiras (`#tabs`) e as ações contextuais (`#tabs-actions`) ficam posicionadas na **exata mesma linha horizontal**, com `display: flex; justify-content: space-between; align-items: center;`.
+  * **Lado Esquerdo:** O seletor de pílulas (`.pills`) com as 5 abas (*Reconciliação bancária*, *Contas a Receber*, *Contas a Pagar*, *Terceiros*, *Plano de Contas*).
+  * **Lado Direito:** Os botões de ação correspondentes à aba ativa:
+    * Na aba *Reconciliação bancária*: `<button class="p" data-a="new" data-k="mov">+ Novo movimento</button>`;
+    * Na aba *Contas a Receber* e *Contas a Pagar*: Seletor de data de referência + `<button class="p" data-a="new" data-k="...">+ Nova factura</button>`;
+    * Na aba *Terceiros*: `<button class="p" data-a="new" data-k="ter">+ Novo terceiro</button>`;
+    * Na aba *Plano de Contas*: Campo de pesquisa de contas + `<button class="p" data-a="new" data-k="pc">+ Nova conta</button>`.
+  * Barras `.bar` redundantes no corpo inferior das tabelas foram eliminadas, proporcionando um design compacto e moderno.
+
 ---
 
 ## 3. Estrutura Modular do Projeto e Persistência
